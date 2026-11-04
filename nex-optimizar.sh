@@ -1,20 +1,20 @@
 #!/usr/bin/env bash
-# Delta Optimizar: asistente en español para optimizar Arch Linux, con el estilo
-# de los optimizadores Delta. Pasos: equipo, modo, ajustes, resumen y aplicar.
-# Al final ofrece elegir las aplicaciones con delta-setup.
+# Nex Optimizar: asistente en español para optimizar Arch Linux, con el estilo
+# de los optimizadores Nex. Pasos: equipo, modo, ajustes, resumen y aplicar.
+# Al final ofrece elegir las aplicaciones con nex-setup.
 #
 # Uso:
-#   sudo bash delta-optimizar.sh            asistente real (necesita root)
-#   bash delta-optimizar.sh --dry-run       muestra lo que haría, sin cambiar nada
+#   sudo bash nex-optimizar.sh            asistente real (necesita root)
+#   bash nex-optimizar.sh --dry-run       muestra lo que haría, sin cambiar nada
 
 set -euo pipefail
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-TITULO="DELTA ARCH · Optimizador"
+TITULO="NEX ARCH · Optimizador"
 SIMULAR=0
 [[ "${1:-}" == "--dry-run" ]] && SIMULAR=1
 
-# Colores del tema Delta para los menús
+# Colores del tema Nex para los menús
 export NEWT_COLORS='
 root=white,black
 window=white,black
@@ -78,7 +78,7 @@ ajuste_zram() {
     echo "==> Memoria comprimida (zram)"
     ejecutar pacman -S --needed --noconfirm zram-generator
     escribir /etc/systemd/zram-generator.conf <<'EOF'
-# Delta Optimizar: swap comprimido en RAM
+# Nex Optimizar: swap comprimido en RAM
 [zram0]
 zram-size = min(ram / 2, 8192)
 compression-algorithm = zstd
@@ -131,13 +131,13 @@ ajuste_sin_hibernacion() {
 ajuste_rendimiento() {
     echo "==> Rendimiento (BETA, experimental)"
     ejecutar pacman -S --needed --noconfirm cpupower
-    escribir /etc/sysctl.d/99-delta-rendimiento.conf <<'EOF'
-# Delta Optimizar (beta): menos uso del swap y mejor caché de ficheros
+    escribir /etc/sysctl.d/99-nex-rendimiento.conf <<'EOF'
+# Nex Optimizar (beta): menos uso del swap y mejor caché de ficheros
 vm.swappiness = 10
 vm.vfs_cache_pressure = 50
 EOF
     escribir /etc/default/cpupower <<'EOF'
-# Delta Optimizar (beta): gobernador de CPU
+# Nex Optimizar (beta): gobernador de CPU
 governor='performance'
 EOF
     ejecutar sysctl --system
@@ -148,7 +148,7 @@ EOF
 
 paso_bienvenida() {
     whiptail --title "$TITULO" --msgbox \
-        "Bienvenido al optimizador de Delta Arch.\n\n$(info_sistema)\n\nTe preguntaré el tipo de equipo, el modo y los ajustes. Nada cambia hasta el final." \
+        "Bienvenido al optimizador de Nex Arch.\n\n$(info_sistema)\n\nTe preguntaré el tipo de equipo, el modo y los ajustes. Nada cambia hasta el final." \
         16 72 || cancelado
 }
 
@@ -216,11 +216,11 @@ aplicar() {
 paso_final() {
     local mensaje="Optimización terminada.\n\nReinicia el equipo para que todos los cambios se apliquen."
     if whiptail --title "$TITULO" --yesno "$mensaje\n\n¿Elegir ahora las aplicaciones a instalar?" 14 66; then
-        # delta-setup usa yay para el AUR, que no funciona como root: volvemos a tu usuario
+        # nex-setup usa yay para el AUR, que no funciona como root: volvemos a tu usuario
         if [[ -n "${SUDO_USER:-}" ]]; then
-            exec sudo -u "$SUDO_USER" -H bash "$DIR/delta-setup.sh"
+            exec sudo -u "$SUDO_USER" -H bash "$DIR/nex-setup.sh"
         fi
-        exec bash "$DIR/delta-setup.sh"
+        exec bash "$DIR/nex-setup.sh"
     fi
     whiptail --title "$TITULO" --msgbox "$mensaje" 10 60
 }
@@ -228,7 +228,7 @@ paso_final() {
 principal() {
     command -v whiptail >/dev/null 2>&1 || error "Falta whiptail. Instálalo con: pacman -S libnewt"
     if (( ! SIMULAR )) && (( EUID != 0 )); then
-        error "Ejecútalo con sudo: sudo bash delta-optimizar.sh (o usa --dry-run para probar)"
+        error "Ejecútalo con sudo: sudo bash nex-optimizar.sh (o usa --dry-run para probar)"
     fi
 
     paso_bienvenida

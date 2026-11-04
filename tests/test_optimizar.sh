@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Prueba de delta-optimizar.sh en modo simulación (no cambia el sistema).
+# Prueba de nex-optimizar.sh en modo simulación (no cambia el sistema).
 # Uso: bash tests/test_optimizar.sh
 
 set -uo pipefail
@@ -14,7 +14,7 @@ fallo() {
 # Cargamos el script sin ejecutar el asistente
 SIMULAR=1
 # shellcheck disable=SC1091
-source "$DIR/delta-optimizar.sh"
+source "$DIR/nex-optimizar.sh"
 SIMULAR=1
 
 AJUSTES="zram pacman limpieza fstrim espejos energia sinhib rendimiento"
@@ -43,6 +43,6 @@ grep -qF "zram-generator" <<< "$salida_sinhib" && fallo "sinhib ha tocado zram"
 
 # Las escrituras de ficheros en simulación solo se muestran
 grep -qF "escribir /etc/systemd/zram-generator.conf" <<< "$salida" || fallo "no muestra la escritura de zram"
-[[ ! -e /etc/systemd/zram-generator.conf.delta-test ]] || fallo "se escribió un fichero real"
+[[ ! -e /etc/systemd/zram-generator.conf.nex-test ]] || fallo "se escribió un fichero real"
 
-echo "OK: delta-optimizar.sh pasa las pruebas de simulación."
+echo "OK: nex-optimizar.sh pasa las pruebas de simulación."

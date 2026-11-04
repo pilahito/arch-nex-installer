@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# Construye una ISO de Arch Linux con Delta Setup incluido.
+# Construye una ISO de Arch Linux con Nex Setup incluido.
 #
 # Parte del perfil "releng" oficial (paquete archiso), le añade los paquetes de
-# packages.x86_64 y copia delta-setup y apps.conf dentro de la ISO.
+# packages.x86_64 y copia nex-setup y apps.conf dentro de la ISO.
 #
 # Uso (como root):  sudo bash archiso/build-iso.sh
 # Requisitos: archiso instalado (pacman -S archiso) y unos 10 GB libres.
@@ -33,9 +33,9 @@ cp -r "$PERFIL_BASE" "$PERFIL"
 echo "==> Añadiendo paquetes"
 cat "$DIR/archiso/packages.x86_64" >> "$PERFIL/packages.x86_64"
 
-echo "==> Copiando Delta Setup dentro de la ISO"
-install -Dm755 "$DIR/delta-setup.sh" "$PERFIL/airootfs/usr/local/bin/delta-setup"
-install -Dm644 "$DIR/config/apps.conf" "$PERFIL/airootfs/etc/delta-setup/apps.conf"
+echo "==> Copiando Nex Setup dentro de la ISO"
+install -Dm755 "$DIR/nex-setup.sh" "$PERFIL/airootfs/usr/local/bin/nex-setup"
+install -Dm644 "$DIR/config/apps.conf" "$PERFIL/airootfs/etc/nex-setup/apps.conf"
 
 echo "==> Construyendo la ISO (puede tardar bastante)"
 mkarchiso -v -w "$TRABAJO" -o "$SALIDA" "$PERFIL"

@@ -1,32 +1,32 @@
 #!/usr/bin/env bash
-# Delta Setup para Arch Linux: un menú tipo "Delta Assistant" para elegir
+# Nex Setup para Arch Linux: un menú tipo "Nex Assistant" para elegir
 # las apps que quieres instalar. Las apps se configuran en config/apps.conf.
 #
 # Uso:
-#   delta-setup.sh                 menú interactivo (por defecto)
-#   delta-setup.sh --list          muestra las apps configuradas
-#   delta-setup.sh --dry-run       muestra qué instalaría sin instalar nada
-#   delta-setup.sh --select a,b    instala esas apps sin menú
-#   delta-setup.sh --config RUTA   usa otro archivo de configuración
-#   delta-setup.sh --help          muestra esta ayuda
+#   nex-setup.sh                 menú interactivo (por defecto)
+#   nex-setup.sh --list          muestra las apps configuradas
+#   nex-setup.sh --dry-run       muestra qué instalaría sin instalar nada
+#   nex-setup.sh --select a,b    instala esas apps sin menú
+#   nex-setup.sh --config RUTA   usa otro archivo de configuración
+#   nex-setup.sh --help          muestra esta ayuda
 
 set -euo pipefail
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# Orden para buscar la configuración: variable DELTA_CONFIG, carpeta del proyecto
-# o la copia instalada en el sistema (/etc/delta-setup/apps.conf, usada por la ISO)
-if [[ -n "${DELTA_CONFIG:-}" ]]; then
-    CONFIG="$DELTA_CONFIG"
+# Orden para buscar la configuración: variable NEX_CONFIG, carpeta del proyecto
+# o la copia instalada en el sistema (/etc/nex-setup/apps.conf, usada por la ISO)
+if [[ -n "${NEX_CONFIG:-}" ]]; then
+    CONFIG="$NEX_CONFIG"
 elif [[ -f "$DIR/config/apps.conf" ]]; then
     CONFIG="$DIR/config/apps.conf"
 else
-    CONFIG="/etc/delta-setup/apps.conf"
+    CONFIG="/etc/nex-setup/apps.conf"
 fi
 MODO="menu"
 SIMULAR=0
 SELECCION_MANUAL=""
 
-# Colores del tema "Delta" para el menú (fondo oscuro, acento cian)
+# Colores del tema "Nex" para el menú (fondo oscuro, acento cian)
 export NEWT_COLORS='
 root=white,black
 window=white,black
@@ -107,7 +107,7 @@ mostrar_menu() {
     (( alto > 24 )) && alto=24
 
     # whiptail escribe la selección por el descriptor 2; la recogemos aquí
-    resultado=$(whiptail --title "DELTA ASSISTANT · Arch Edition" \
+    resultado=$(whiptail --title "NEX ASSISTANT · Arch Edition" \
         --checklist "Selecciona las aplicaciones que quieres instalar en tu sistema:" \
         "$alto" 78 $(( alto - 8 )) \
         "${opciones[@]}" 3>&1 1>&2 2>&3) || return 1

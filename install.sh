@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Instala Delta Setup en un Arch Linux ya instalado.
-# Copia el script a /usr/local/bin/delta-setup y la configuración a /etc/delta-setup.
+# Instala Nex Setup en un Arch Linux ya instalado.
+# Copia el script a /usr/local/bin/nex-setup y la configuración a /etc/nex-setup.
 #
 # Uso (como root):  sudo bash install.sh
 
@@ -18,8 +18,8 @@ if ! command -v whiptail >/dev/null 2>&1; then
     pacman -S --needed --noconfirm libnewt
 fi
 
-install -Dm755 "$DIR/delta-setup.sh" /usr/local/bin/delta-setup
-install -Dm755 "$DIR/delta-optimizar.sh" /usr/local/bin/delta-optimizar
-install -Dm644 "$DIR/config/apps.conf" /etc/delta-setup/apps.conf
+install -Dm755 "$DIR/nex-setup.sh" /usr/local/bin/nex-setup
+install -Dm755 "$DIR/nex-optimizar.sh" /usr/local/bin/nex-optimizar
+install -Dm644 "$DIR/config/apps.conf" /etc/nex-setup/apps.conf
 
-echo "==> Instalado. Ejecuta: sudo delta-optimizar (ajustes) o delta-setup (apps)"
+echo "==> Instalado. Ejecuta: sudo nex-optimizar (ajustes) o nex-setup (apps)"

@@ -65,6 +65,7 @@ PAQUETES_AUR = {
     "Vesktop": "vesktop",
     "Claude Code": "claude-code",
     "Open WebUI": "open-webui",
+    "Octopi": "octopi",
 }
 
 # Temas de la interfaz -> paletas que existen en el instalador (tema/paletas/*.env)

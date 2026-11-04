@@ -925,7 +925,7 @@ class NexOptimizerGUI(QMainWindow):
             "GAMING": ["Steam", "Lutris", "Heroic Launcher", "GameMode", "MangoHud", "Prism Launcher"],
             "MULTIMEDIA": ["VLC", "MPV", "OBS Studio", "Kdenlive", "Audacity"],
             "INTERNET": ["Brave", "Brave Origin", "Firefox", "Chromium", "Vesktop", "qBittorrent"],
-            "VARIOS": ["7-Zip / Ark", "btop", "Fastfetch"],
+            "VARIOS": ["7-Zip / Ark", "btop", "Fastfetch", "Octopi"],
             "DESARROLLO": ["VS Code", "Node.js", "Git", "Docker"],
             "DISEÑO": ["GIMP", "Inkscape", "Krita", "Blender"],
             "IA": ["Ollama", "Claude Code", "Open WebUI"],

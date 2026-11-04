@@ -278,7 +278,7 @@ COLOR_AMBAR = "#ffc857"
 
 # Icono de cada opción de tarjeta y de cada página
 ICONO_OPCION = {
-    "INTEL": "gpu", "NVIDIA": "gpu", "AMD": "gpu",
+    "INTEL": "intel", "NVIDIA": "nvidia", "AMD": "amd",
     "SSD / M.2": "disco", "SATA SSD": "disco", "HDD": "disco",
     "Escritorio": "escritorio", "Portátil": "portatil",
     "Seguro": "escudo", "Medio": "gauge", "Extremo": "rayo",
@@ -349,6 +349,15 @@ def _dibujar_icono(p, tipo, m, w, c):
         p.drawEllipse(QRectF(m, m, w, w))
 
 
+# Fabricantes de GPU: etiqueta y color de la marca (sin logotipos, solo el nombre y su color)
+MARCAS_GPU_NOMBRE = ("INTEL", "NVIDIA", "AMD")  # nombres de tarjeta que usan un icono de marca
+MARCAS_GPU = {
+    "intel": ("intel", "#0071c5"),
+    "nvidia": ("NV", "#76b900"),
+    "amd": ("AMD", "#ed1c24"),
+}
+
+
 class Icono(QWidget):
     """Icono vectorial de color, dibujado con QPainter (sin ficheros externos)."""
 
@@ -362,9 +371,20 @@ class Icono(QWidget):
         p = QPainter(self)
         p.setRenderHint(QPainter.RenderHint.Antialiasing)
         tamano = self.width()
-        pen = QPen(self.color, max(2, tamano // 16))
-        p.setPen(pen)
-        _dibujar_icono(p, self.tipo, tamano * 0.14, tamano * 0.72, self.color)
+        m, w = tamano * 0.14, tamano * 0.72
+        if self.tipo in MARCAS_GPU:
+            etiqueta, color_marca = MARCAS_GPU[self.tipo]
+            # Chip con el color del fabricante y su nombre dentro
+            p.setPen(Qt.PenStyle.NoPen)
+            p.setBrush(QColor(color_marca))
+            p.drawRoundedRect(QRectF(m, m, w, w), w * 0.18, w * 0.18)
+            p.setPen(QColor("#ffffff"))
+            p.setFont(QFont("DejaVu Sans", max(6, int(w * 0.24)), QFont.Weight.Bold))
+            p.drawText(QRectF(m, m, w, w), Qt.AlignmentFlag.AlignCenter, etiqueta)
+        else:
+            pen = QPen(self.color, max(2, tamano // 16))
+            p.setPen(pen)
+            _dibujar_icono(p, self.tipo, m, w, self.color)
         p.end()
 
 
@@ -706,7 +726,8 @@ class NexOptimizerGUI(QMainWindow):
             cl = QVBoxLayout(card)
             cl.setContentsMargins(20, 22, 20, 22)
             if nombre in ICONO_OPCION:
-                color = COLOR_MAGENTA if self.estado[clave] == nombre else COLOR_CIAN
+                color = MARCAS_GPU[ICONO_OPCION[nombre]][1] if nombre in MARCAS_GPU_NOMBRE \
+                    else (COLOR_MAGENTA if self.estado[clave] == nombre else COLOR_CIAN)
                 cl.addWidget(Icono(ICONO_OPCION[nombre], color, 64), alignment=Qt.AlignmentFlag.AlignCenter)
             lbl_n = QLabel(nombre)
             lbl_n.setObjectName("Titulo")

@@ -405,8 +405,12 @@ PASOS = [
     "Instalar Arch con archinstall",
     "Montar la instalación",
     "Aplicar el tema Nex",
+    "Instalar Nex Setup y el optimizador",
     "Desmontar",
 ]
+
+# Herramientas de Nex Setup que se copian al sistema instalado (no el repositorio entero)
+EXCLUIR_SETUP = shutil.ignore_patterns(".git", "tests", "docs", "__pycache__", "*.pyc", "*.md")
 
 
 def pintar_progreso(scr, estados, registro):
@@ -527,6 +531,31 @@ def instalar(scr, disco, equipo, tema):
         comando(["arch-chroot", MONTAJE, "/usr/local/share/nex/aplicar-tema.sh",
                  equipo["usuario"], tema], registro)
 
+    def instalar_setup():
+        """Copia Nex Setup al sistema instalado y crea sus comandos en /usr/local/bin."""
+        origen = DIR / "nex-setup"
+        destino = Path(MONTAJE) / "usr/local/share/nex-setup"
+        comandos = {
+            "nex-setup": "/usr/local/share/nex-setup/nex-setup.sh",
+            "nex-optimizar": "/usr/local/share/nex-setup/nex-optimizar.sh",
+            "nex-optimizar-gui": "/usr/local/share/nex-setup/nex_optimizador_gui.py",
+        }
+        if SIMULAR:
+            registro.append(f"[simulación] copiar Nex Setup a {destino} y crear {', '.join(comandos)}")
+            return
+        if not origen.is_dir():
+            raise RuntimeError(f"No encuentro Nex Setup en {origen}")
+        shutil.copytree(origen, destino, ignore=EXCLUIR_SETUP, dirs_exist_ok=True)
+        for nombre, ruta in comandos.items():
+            ejecutable = Path(MONTAJE) / "usr/local/bin" / nombre
+            ejecutable.parent.mkdir(parents=True, exist_ok=True)
+            if ruta.endswith(".py"):
+                ejecutable.write_text(f"#!/usr/bin/env bash\nexec python3 {ruta} \"$@\"\n")
+            else:
+                ejecutable.write_text(f"#!/usr/bin/env bash\nexec bash {ruta} \"$@\"\n")
+            os.chmod(ejecutable, 0o755)
+        registro.append("Nex Setup instalado.")
+
     def desmontar():
         if not SIMULAR:
             ejecutar(["umount", "-R", MONTAJE])
@@ -534,7 +563,7 @@ def instalar(scr, disco, equipo, tema):
 
     try:
         ok = (paso(0, preparar) and paso(1, archinstall) and paso(2, montar)
-              and paso(3, aplicar_tema) and paso(4, desmontar))
+              and paso(3, aplicar_tema) and paso(4, instalar_setup) and paso(5, desmontar))
     finally:
         shutil.rmtree(trabajo, ignore_errors=True)
     return ok, registro

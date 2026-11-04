@@ -58,12 +58,33 @@ install -m755 "$DIR/nex_instalador.py" "$INSTALADOR/nex_instalador.py"
 cp -r "$DIR/post-instalacion" "$DIR/tema" "$INSTALADOR/"
 install -m755 "$DIR/iso/airootfs/root/.automated_script.sh" "$PERFIL/airootfs/root/.automated_script.sh"
 
+echo "==> Nex Setup (optimizador, menú de apps y asistente gráfico) dentro de la ISO"
+SETUP="${NEX_SETUP_DIR:-$DIR/../arch-nex-setup}"
+[[ -f "$SETUP/nex_optimizador_gui.py" ]] || error "No encuentro Nex Setup en $SETUP (define NEX_SETUP_DIR)"
+mkdir -p "$INSTALADOR/nex-setup"
+tar -C "$SETUP" --exclude=./.git --exclude=./tests --exclude=./docs --exclude=./__pycache__ -cf - . \
+    | tar -C "$INSTALADOR/nex-setup" -xf -
+
+echo "==> Comandos en la ISO"
+mkdir -p "$PERFIL/airootfs/usr/local/bin"
+printf '#!/usr/bin/env bash\nexec bash /root/nex-installer/nex-setup/nex-setup.sh "$@"\n' \
+    > "$PERFIL/airootfs/usr/local/bin/nex-setup"
+printf '#!/usr/bin/env bash\nexec bash /root/nex-installer/nex-setup/nex-optimizar.sh "$@"\n' \
+    > "$PERFIL/airootfs/usr/local/bin/nex-optimizar"
+chmod 755 "$PERFIL/airootfs/usr/local/bin/nex-setup" "$PERFIL/airootfs/usr/local/bin/nex-optimizar"
+
 echo "==> Permisos de los ficheros del instalador"
 sed -i '/^file_permissions=(/a\
   ["/root/nex-installer/instalar-nex.sh"]="0:0:755"\
   ["/root/nex-installer/generar_config.py"]="0:0:755"\
   ["/root/nex-installer/nex_instalador.py"]="0:0:755"\
-  ["/root/nex-installer/post-instalacion/aplicar-tema.sh"]="0:0:755"' "$PERFIL/profiledef.sh"
+  ["/root/nex-installer/post-instalacion/aplicar-tema.sh"]="0:0:755"\
+  ["/root/nex-installer/nex-setup/nex-setup.sh"]="0:0:755"\
+  ["/root/nex-installer/nex-setup/nex-optimizar.sh"]="0:0:755"\
+  ["/root/nex-installer/nex-setup/nex_optimizador_gui.py"]="0:0:755"\
+  ["/root/nex-installer/nex-setup/nex_plan.py"]="0:0:755"\
+  ["/usr/local/bin/nex-setup"]="0:0:755"\
+  ["/usr/local/bin/nex-optimizar"]="0:0:755"' "$PERFIL/profiledef.sh"
 
 echo "==> Construyendo la ISO (tarda bastante: descarga paquetes)"
 mkarchiso -v -w "$TRABAJO" -o "$SALIDA" "$PERFIL"

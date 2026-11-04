@@ -924,10 +924,11 @@ class NexOptimizerGUI(QMainWindow):
         categorias = {
             "GAMING": ["Steam", "Lutris", "Heroic Launcher", "GameMode", "MangoHud", "Prism Launcher"],
             "MULTIMEDIA": ["VLC", "MPV", "OBS Studio", "Kdenlive", "Audacity"],
-            "INTERNET": ["Brave", "Firefox", "Chromium", "Vesktop", "qBittorrent"],
+            "INTERNET": ["Brave", "Brave Origin", "Firefox", "Chromium", "Vesktop", "qBittorrent"],
             "VARIOS": ["7-Zip / Ark", "btop", "Fastfetch"],
             "DESARROLLO": ["VS Code", "Node.js", "Git", "Docker"],
             "DISEÑO": ["GIMP", "Inkscape", "Krita", "Blender"],
+            "IA": ["Ollama", "Claude Code", "Open WebUI"],
         }
         grid = QGridLayout()
         grid.setSpacing(16)
@@ -938,7 +939,7 @@ class NexOptimizerGUI(QMainWindow):
             color_cat = [COLOR_MAGENTA, COLOR_CIAN, COLOR_VIOLETA, COLOR_AMBAR][col % 4]
             fila_cat = QHBoxLayout()
             fila_cat.addWidget(Icono({"GAMING": "rayo", "MULTIMEDIA": "apps", "INTERNET": "hyprland",
-                                      "VARIOS": "gauge", "DESARROLLO": "apps", "DISEÑO": "hyprland"}[cat], color_cat, 34))
+                                      "VARIOS": "gauge", "DESARROLLO": "apps", "DISEÑO": "hyprland", "IA": "rayo"}[cat], color_cat, 34))
             etiqueta = QLabel(cat)
             etiqueta.setObjectName("Etiqueta")
             etiqueta.setStyleSheet(f"color: {color_cat};")

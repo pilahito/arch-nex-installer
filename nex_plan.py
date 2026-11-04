@@ -50,6 +50,7 @@ PAQUETES_APPS = {
     "Blender": "blender",
     "Inkscape": "inkscape",
     "Krita": "krita",
+    "Ollama": "ollama",
     "VS Code": "code",
     "Node.js": "nodejs npm",
     "Git": "git",
@@ -59,8 +60,11 @@ PAQUETES_APPS = {
 # Estas apps no están en los repositorios oficiales: se instalan con yay (AUR)
 PAQUETES_AUR = {
     "Brave": "brave-bin",
+    "Brave Origin": "brave-origin-bin",
     "Heroic Launcher": "heroic-games-launcher-bin",
     "Vesktop": "vesktop",
+    "Claude Code": "claude-code",
+    "Open WebUI": "open-webui",
 }
 
 # Temas de la interfaz -> paletas que existen en el instalador (tema/paletas/*.env)

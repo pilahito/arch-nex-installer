@@ -362,6 +362,51 @@ MARCAS_GPU = {
 }
 
 
+RUTA_LOGOS = RUTA_ASSETS / "logos"
+# Aplicación -> archivo de logotipo libre (ver assets/logos/ORIGEN.md)
+LOGOS_APP = {
+    "Lutris": "lutris.svg", "Prism Launcher": "prismlauncher.svg", "OBS Studio": "obs-studio.svg",
+    "Kdenlive": "kdenlive.svg", "Firefox": "firefox.svg", "Brave": "brave.svg",
+    "Node.js": "nodejs.svg", "Git": "git.svg",
+}
+
+
+class LogoApp(QWidget):
+    """Logotipo libre de una aplicación; si no hay, una ficha de color con sus iniciales."""
+
+    def __init__(self, nombre, tamano=26):
+        super().__init__()
+        self.nombre = nombre
+        self.setFixedSize(tamano, tamano)
+        self.render = None
+        if nombre in LOGOS_APP:
+            from PyQt6.QtSvg import QSvgRenderer
+            svg = QSvgRenderer(str(RUTA_LOGOS / LOGOS_APP[nombre]))
+            if svg.isValid():
+                self.render = svg
+
+    def paintEvent(self, evento):
+        p = QPainter(self)
+        p.setRenderHint(QPainter.RenderHint.Antialiasing)
+        t = self.width()
+        if self.render is not None:
+            tam = self.render.defaultSize()
+            escala = min(t / tam.width(), t / tam.height())
+            ancho_f, alto_f = tam.width() * escala, tam.height() * escala
+            self.render.render(p, QRectF((t - ancho_f) / 2, (t - alto_f) / 2, ancho_f, alto_f))
+        else:
+            # Ficha de color estable para cada nombre, con las dos primeras letras
+            tonos = [COLOR_CIAN, COLOR_MAGENTA, COLOR_VIOLETA, COLOR_VERDE, COLOR_AMBAR]
+            color = QColor(tonos[sum(map(ord, self.nombre)) % len(tonos)])
+            p.setPen(Qt.PenStyle.NoPen)
+            p.setBrush(color.darker(300))
+            p.drawRoundedRect(QRectF(0, 0, t, t), t * 0.25, t * 0.25)
+            p.setPen(color.lighter(130))
+            p.setFont(QFont("DejaVu Sans", max(6, int(t * 0.36)), QFont.Weight.Bold))
+            p.drawText(QRectF(0, 0, t, t), Qt.AlignmentFlag.AlignCenter, self.nombre[:2].upper())
+        p.end()
+
+
 class Icono(QWidget):
     """Icono vectorial de color, dibujado con QPainter (sin ficheros externos)."""
 
@@ -904,7 +949,10 @@ class NexOptimizerGUI(QMainWindow):
                 chk = QCheckBox(app)
                 chk.setChecked(app in self.estado["apps"])
                 self.checks_apps.append((app, chk))
-                cl.addWidget(chk)
+                fila_app = QHBoxLayout()
+                fila_app.addWidget(LogoApp(app, 26))
+                fila_app.addWidget(chk, 1)
+                cl.addLayout(fila_app)
             cl.addStretch()
             grid.addWidget(card, col // 3, col % 3)
         capa.addLayout(grid, 1)

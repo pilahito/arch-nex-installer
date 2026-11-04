@@ -38,7 +38,7 @@ class PlanTest(unittest.TestCase):
         pacman = [p for p in pasos if p.args[:2] == ["pacman", "-S"]]
         self.assertEqual(len(pacman), 1)
         paquetes = pacman[0].args
-        for esperado in ("nvidia-open", "vlc", "firefox", "hyprland", "libreoffice-fresh-es"):
+        for esperado in ("nvidia-dkms", "vlc", "firefox", "hyprland", "libreoffice-fresh-es"):
             self.assertIn(esperado, paquetes)
 
     def test_ssd_activa_fstrim_y_hdd_no(self):

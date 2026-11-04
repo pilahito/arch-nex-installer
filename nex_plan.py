@@ -26,7 +26,7 @@ DIR = Path(__file__).resolve().parent
 # Paquetes de los repositorios oficiales (verificados en Arch)
 PAQUETES_GPU = {
     "INTEL": ["vulkan-intel", "intel-media-driver"],
-    "NVIDIA": ["nvidia-open", "nvidia-utils"],
+    "NVIDIA": ["nvidia-dkms", "nvidia-utils"],
     "AMD": ["vulkan-radeon"],
 }
 
@@ -48,6 +48,10 @@ PAQUETES_APPS = {
     "Fastfetch": "fastfetch",
     "GIMP": "gimp",
     "Blender": "blender",
+    "VS Code": "code",
+    "Node.js": "nodejs npm",
+    "Git": "git",
+    "Docker": "docker",
 }
 
 # Estas apps no están en los repositorios oficiales: se instalan con yay (AUR)
@@ -182,7 +186,7 @@ def construir_plan(estado: dict) -> Tuple[List[Paso], List[str]]:
             avisos.append("Steam está en multilib: actívalo en /etc/pacman.conf antes de instalarlo.")
             repo.append(PAQUETE_STEAM)
         elif app in PAQUETES_APPS:
-            repo.append(PAQUETES_APPS[app])
+            repo += PAQUETES_APPS[app].split()
         elif app in PAQUETES_AUR:
             aur.append(PAQUETES_AUR[app])
         else:

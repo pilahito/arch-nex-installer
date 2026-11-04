@@ -13,18 +13,21 @@ Uso:
 """
 
 import os
+import json
 import shutil
+import subprocess
 import sys
 from pathlib import Path
 
 import math
 
-from PyQt6.QtCore import QPointF, Qt, QEasingCurve, QPropertyAnimation, QThread, QTimer, pyqtSignal
-from PyQt6.QtGui import QColor, QFont, QLinearGradient, QPainter, QPainterPath, QPen, QPixmap
+from PyQt6.QtCore import QPointF, QRectF, Qt, QEasingCurve, QPropertyAnimation, QThread, QTimer, pyqtSignal
+from PyQt6.QtGui import QBrush, QColor, QConicalGradient, QFont, QLinearGradient, QPainter, QPainterPath, QPen, QPixmap
 from PyQt6.QtWidgets import (
     QApplication, QCheckBox, QComboBox, QDialog, QFrame, QGraphicsDropShadowEffect,
     QGraphicsOpacityEffect, QGridLayout, QHBoxLayout, QInputDialog, QLabel, QLineEdit,
-    QMainWindow, QProgressBar, QPushButton, QStackedWidget, QTextEdit, QVBoxLayout, QWidget,
+    QAbstractItemView, QMainWindow, QMessageBox, QProgressBar, QPushButton, QStackedWidget,
+    QTableWidget, QTableWidgetItem, QTextEdit, QVBoxLayout, QWidget,
 )
 
 DIR = Path(__file__).resolve().parent
@@ -91,6 +94,12 @@ QComboBox QAbstractItemView { background: #0a1224; color: @texto; selection-back
 QTextEdit, QLineEdit {
     background: #070b16; color: @texto; border: 1px solid #1f2d52; border-radius: 8px; padding: 8px;
 }
+QTableWidget {
+    background: #070b16; color: @texto; gridline-color: #1f2d52;
+    border: 1px solid #1f2d52; border-radius: 8px;
+}
+QTableWidget::item:selected { background: @magenta; color: #ffffff; }
+QHeaderView::section { background: #0a1224; color: @cian; border: none; padding: 6px; }
 QProgressBar {
     background: #0a1224; border: 1px solid #1f2d52; border-radius: 8px;
     text-align: center; color: #ffffff; font-weight: bold; min-height: 18px;
@@ -479,6 +488,63 @@ class CheckGlow(QWidget):
         p.end()
 
 
+class AnilloProgreso(QWidget):
+    """Anillo de progreso con degradado cian, violeta y magenta, y el porcentaje en el centro."""
+
+    def __init__(self):
+        super().__init__()
+        self.valor = 0
+        self.setMinimumSize(200, 200)
+
+    def setValor(self, valor):
+        self.valor = max(0, min(100, int(valor)))
+        self.update()
+
+    def paintEvent(self, evento):
+        p = QPainter(self)
+        p.setRenderHint(QPainter.RenderHint.Antialiasing)
+        lado = min(self.width(), self.height()) - 28
+        r = QRectF((self.width() - lado) / 2, (self.height() - lado) / 2, lado, lado)
+        grosor = 14
+
+        p.setBrush(Qt.BrushStyle.NoBrush)
+        p.setPen(QPen(QColor("#1f2d52"), grosor))
+        p.drawArc(r, 0, 360 * 16)
+
+        degradado = QConicalGradient(r.center(), 90)
+        degradado.setColorAt(0.0, QColor(COLOR_CIAN))
+        degradado.setColorAt(0.5, QColor(COLOR_VIOLETA))
+        degradado.setColorAt(1.0, QColor(COLOR_MAGENTA))
+        pluma = QPen(QBrush(degradado), grosor)
+        pluma.setCapStyle(Qt.PenCapStyle.RoundCap)
+        p.setPen(pluma)
+        p.drawArc(r, 90 * 16, -int(360 * 16 * self.valor / 100))
+
+        p.setPen(QColor("#f4eaff"))
+        p.setFont(QFont("DejaVu Sans", 20, QFont.Weight.Bold))
+        p.drawText(self.rect(), Qt.AlignmentFlag.AlignCenter, f"{self.valor}%")
+        p.end()
+
+
+def leer_discos(simular):
+    """Discos para la tabla de almacenamiento (solo lectura)."""
+    if simular:
+        return [{"nombre": "/dev/sdz", "tamano": "512 GB", "modelo": "Disco de prueba"}]
+    try:
+        salida = subprocess.run(["lsblk", "-J", "-b", "-d", "-p", "-o", "NAME,SIZE,TYPE,MODEL"],
+                                capture_output=True, text=True).stdout
+        datos = json.loads(salida)
+    except (OSError, ValueError):
+        return []
+    filas = []
+    for d in datos.get("blockdevices", []):
+        if d.get("type") == "disk":
+            tamano = int(d.get("size") or 0) / 1024**3
+            filas.append({"nombre": d["name"], "tamano": f"{tamano:.0f} GB",
+                          "modelo": (d.get("model") or "").strip() or "disco"})
+    return filas
+
+
 class NexOptimizerGUI(QMainWindow):
     PASOS = [
         "GPU", "Almacenamiento", "Equipo", "Oficina", "Aplicaciones",
@@ -690,7 +756,7 @@ class NexOptimizerGUI(QMainWindow):
         )
 
     def crear_pantalla_almacenamiento(self):
-        self.crear_tarjetas_seleccion(
+        pagina = self.crear_tarjetas_seleccion(
             "Almacenamiento",
             "En SSD o M.2 se activa el recorte semanal (fstrim).",
             [
@@ -700,6 +766,7 @@ class NexOptimizerGUI(QMainWindow):
             ],
             "almacenamiento",
         )
+        self.agregar_tabla_discos(pagina)
 
     def crear_pantalla_equipo(self):
         self.crear_tarjetas_seleccion(
@@ -777,6 +844,7 @@ class NexOptimizerGUI(QMainWindow):
             "MULTIMEDIA": ["VLC", "MPV", "OBS Studio", "Kdenlive", "Audacity"],
             "INTERNET": ["Brave", "Firefox", "Chromium", "Vesktop", "qBittorrent"],
             "VARIOS": ["7-Zip / Ark", "btop", "Fastfetch", "GIMP", "Blender"],
+            "DESARROLLO": ["VS Code", "Node.js", "Git", "Docker"],
         }
         grid = QGridLayout()
         grid.setSpacing(16)
@@ -787,7 +855,7 @@ class NexOptimizerGUI(QMainWindow):
             color_cat = [COLOR_MAGENTA, COLOR_CIAN, COLOR_VIOLETA, COLOR_AMBAR][col % 4]
             fila_cat = QHBoxLayout()
             fila_cat.addWidget(Icono({"GAMING": "rayo", "MULTIMEDIA": "apps", "INTERNET": "hyprland",
-                                      "VARIOS": "gauge"}[cat], color_cat, 34))
+                                      "VARIOS": "gauge", "DESARROLLO": "apps"}[cat], color_cat, 34))
             etiqueta = QLabel(cat)
             etiqueta.setObjectName("Etiqueta")
             etiqueta.setStyleSheet(f"color: {color_cat};")
@@ -800,7 +868,7 @@ class NexOptimizerGUI(QMainWindow):
                 self.checks_apps.append((app, chk))
                 cl.addWidget(chk)
             cl.addStretch()
-            grid.addWidget(card, 0, col)
+            grid.addWidget(card, col // 3, col % 3)
         capa.addLayout(grid, 1)
         continuar = QPushButton("Continuar")
         continuar.setObjectName("Primario")
@@ -944,9 +1012,14 @@ class NexOptimizerGUI(QMainWindow):
         self.lbl_resumen.setObjectName("Info")
         self.lbl_resumen.setWordWrap(True)
         self.lbl_resumen.setTextFormat(Qt.TextFormat.PlainText)
+        self.anillo = AnilloProgreso()
+        il.addWidget(self.anillo, alignment=Qt.AlignmentFlag.AlignCenter)
         self.check = CheckGlow()
         self.check.setVisible(False)
         il.addWidget(self.check, alignment=Qt.AlignmentFlag.AlignCenter)
+        self.lbl_cuenta = QLabel("")
+        self.lbl_cuenta.setObjectName("Info")
+        il.addWidget(self.lbl_cuenta, alignment=Qt.AlignmentFlag.AlignCenter)
         il.addWidget(self.lbl_estado_final)
         il.addWidget(self.progreso)
         il.addWidget(self.lbl_resumen, 1)
@@ -957,8 +1030,12 @@ class NexOptimizerGUI(QMainWindow):
         salir = QPushButton("Salir")
         salir.setObjectName("Primario")
         salir.clicked.connect(self.close)
+        self.boton_reiniciar = QPushButton("Reiniciar sistema")
+        self.boton_reiniciar.setVisible(False)
+        self.boton_reiniciar.clicked.connect(self.pedir_reinicio)
         botones.addWidget(acerca)
         botones.addStretch()
+        botones.addWidget(self.boton_reiniciar)
         botones.addWidget(salir)
         il.addLayout(botones)
 
@@ -1028,16 +1105,75 @@ class NexOptimizerGUI(QMainWindow):
         self.trabajador.start()
         password = None  # no guardar la contraseña más tiempo del necesario
 
+    def agregar_tabla_discos(self, pagina):
+        """Tabla de discos (solo lectura) bajo las tarjetas de almacenamiento."""
+        filas = leer_discos(self.simular)
+        tabla = QTableWidget(len(filas), 3)
+        tabla.setHorizontalHeaderLabels(["Dispositivo", "Tamaño", "Modelo"])
+        tabla.verticalHeader().setVisible(False)
+        tabla.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        tabla.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        tabla.horizontalHeader().setStretchLastSection(True)
+        tabla.setMaximumHeight(150)
+        for i, fila in enumerate(filas):
+            tabla.setItem(i, 0, QTableWidgetItem(fila["nombre"]))
+            tabla.setItem(i, 1, QTableWidgetItem(fila["tamano"]))
+            tabla.setItem(i, 2, QTableWidgetItem(fila["modelo"]))
+        if filas:
+            tabla.selectRow(0)
+        pagina.layout().addWidget(tabla)
+        self.tabla_discos = tabla
+
+    def pedir_reinicio(self):
+        """Reinicio con confirmación y cuenta atrás de 3 segundos."""
+        respuesta = QMessageBox.question(
+            self, "Reiniciar", "¿Reiniciar el equipo ahora? Guarda tu trabajo antes.",
+        )
+        if respuesta != QMessageBox.StandardButton.Yes:
+            return
+        self.cuenta = 3
+        self.boton_reiniciar.setEnabled(False)
+        self.lbl_cuenta.setText(f"Reiniciando en {self.cuenta}…")
+        self.timer_cuenta = QTimer(self)
+        self.timer_cuenta.timeout.connect(self._tick_cuenta)
+        self.timer_cuenta.start(1000)
+
+    def _tick_cuenta(self):
+        self.cuenta -= 1
+        if self.cuenta > 0:
+            self.lbl_cuenta.setText(f"Reiniciando en {self.cuenta}…")
+            return
+        self.timer_cuenta.stop()
+        self.reiniciar()
+
+    def reiniciar(self):
+        if self.simular:
+            self.lbl_cuenta.setText("[simulación] systemctl reboot: no se reinicia nada.")
+            return
+        if os.geteuid() == 0:
+            subprocess.Popen(["systemctl", "reboot"])
+            return
+        clave, ok = QInputDialog.getText(
+            self, "Contraseña de administrador", "Contraseña de sudo para reiniciar:",
+            QLineEdit.EchoMode.Password,
+        )
+        if ok:
+            subprocess.run(["sudo", "-S", "-p", "", "systemctl", "reboot"], input=clave + "\n", text=True)
+
     def recibir_linea(self, texto):
         self.lineas_registro.append(texto)
         self.lbl_resumen.setText("\n".join(self.lineas_registro[-12:]))
 
     def recibir_avance(self, hecho, total):
         self.progreso.setValue(hecho)
+        self.anillo.setValor(int(hecho * 100 / max(total, 1)))
         self.lbl_estado_final.setText(f"PASO {hecho} DE {total}")
 
     def terminar_plan(self, ok):
         self.check.setVisible(ok)
+        self.boton_reiniciar.setVisible(ok)
+        if ok:
+            self.anillo.setValor(100)
         if ok:
             self.progreso.setValue(self.progreso.maximum())
             self.lbl_estado_final.setText("✔ TU EQUIPO ESTÁ LISTO")

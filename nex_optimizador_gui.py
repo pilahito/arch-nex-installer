@@ -20,7 +20,7 @@ from pathlib import Path
 import math
 
 from PyQt6.QtCore import QPointF, Qt, QEasingCurve, QPropertyAnimation, QThread, QTimer, pyqtSignal
-from PyQt6.QtGui import QColor, QFont, QLinearGradient, QPainter, QPen
+from PyQt6.QtGui import QColor, QFont, QLinearGradient, QPainter, QPainterPath, QPen, QPixmap
 from PyQt6.QtWidgets import (
     QApplication, QCheckBox, QComboBox, QDialog, QFrame, QGraphicsDropShadowEffect,
     QGraphicsOpacityEffect, QGridLayout, QHBoxLayout, QInputDialog, QLabel, QLineEdit,
@@ -28,8 +28,16 @@ from PyQt6.QtWidgets import (
 )
 
 DIR = Path(__file__).resolve().parent
+RUTA_ASSETS = DIR / "assets"
 sys.path.insert(0, str(DIR))
 import nex_plan  # noqa: E402
+
+# Imagen de fondo de cada tema (generadas con tools/generar_imagenes.py)
+ARCHIVO_FONDO = {"NEX NEÓN": "neon", "OSCURO": "oscuro", "CLARO": "claro", "HYDE": "hyde"}
+
+
+def fondo_de(tema):
+    return QPixmap(str(RUTA_ASSETS / "fondos" / f"{ARCHIVO_FONDO.get(tema, 'neon')}.png"))
 
 # Paleta neón, la misma de la paleta "neon" de Nex
 COLORES = {
@@ -380,6 +388,7 @@ class VistaTema(QFrame):
         super().__init__()
         self.nombre = nombre
         self.seleccionada = False
+        self.fondo = fondo_de(nombre)
         self.setMinimumSize(150, 110)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
 
@@ -391,31 +400,36 @@ class VistaTema(QFrame):
         self.pulsada.emit(self.nombre)
 
     def paintEvent(self, evento):
+        _, acento, _ = PALETAS_VISTA.get(self.nombre, ("#111111", "#2ee6ff", "#ff2fb3"))
         p = QPainter(self)
         p.setRenderHint(QPainter.RenderHint.Antialiasing)
-        fondo, acento, secundario = PALETAS_VISTA.get(self.nombre, ("#111111", "#2ee6ff", "#ff2fb3"))
-        ancho, alto = self.width(), self.height()
-        marco = self.rect().adjusted(3, 3, -3, -3)
+        r = self.rect().adjusted(3, 3, -3, -3)
+        ancho, alto = r.width(), r.height()
 
-        gradiente = QLinearGradient(0, 0, ancho, alto)
-        gradiente.setColorAt(0.0, QColor(fondo))
-        gradiente.setColorAt(1.0, QColor(secundario).darker(260))
-        p.setBrush(gradiente)
-        p.setPen(QPen(QColor(acento) if self.seleccionada else QColor("#1f2d52"), 2 if self.seleccionada else 1))
-        p.drawRoundedRect(marco, 12, 12)
+        # Fondo de pantalla recortado con esquinas redondeadas
+        recorte = QPainterPath()
+        recorte.addRoundedRect(float(r.x()), float(r.y()), float(ancho), float(alto), 12, 12)
+        p.setClipPath(recorte)
+        if not self.fondo.isNull():
+            escalada = self.fondo.scaled(ancho, alto, Qt.AspectRatioMode.KeepAspectRatioByExpanding,
+                                         Qt.TransformationMode.SmoothTransformation)
+            sx = (escalada.width() - ancho) // 2
+            sy = (escalada.height() - alto) // 2
+            p.drawPixmap(r.x(), r.y(), escalada, sx, sy, ancho, alto)
+        else:
+            p.fillRect(r, QColor("#120a24"))
 
-        # Barra de la ventana de muestra y dos paneles
-        p.setPen(Qt.PenStyle.NoPen)
-        p.setBrush(QColor(acento))
-        p.drawRoundedRect(12, 12, ancho - 24, 9, 4, 4)
-        p.setBrush(QColor(255, 255, 255, 36))
-        p.drawRoundedRect(12, 28, ancho - 24, alto - 62, 8, 8)
-        p.setBrush(QColor(secundario))
-        p.drawRoundedRect(18, 34, (ancho - 36) // 3, alto - 74, 6, 6)
-
+        # Banda inferior con el nombre del tema
+        p.fillRect(r.x(), r.bottom() - 30, ancho, 30, QColor(0, 0, 0, 170))
+        p.setClipping(False)
         p.setPen(QColor("#f4eaff"))
         p.setFont(QFont("DejaVu Sans Mono", 9, QFont.Weight.Bold))
-        p.drawText(0, alto - 26, ancho, 20, Qt.AlignmentFlag.AlignCenter, self.nombre)
+        p.drawText(r.x(), r.bottom() - 30, ancho, 30, Qt.AlignmentFlag.AlignCenter, self.nombre)
+
+        # Borde: cian/magenta si está elegido
+        p.setBrush(Qt.BrushStyle.NoBrush)
+        p.setPen(QPen(QColor(acento) if self.seleccionada else QColor("#1f2d52"), 2 if self.seleccionada else 1))
+        p.drawRoundedRect(r, 12, 12)
         p.end()
 
 
@@ -534,8 +548,13 @@ class NexOptimizerGUI(QMainWindow):
 
     def crear_cabecera(self):
         fila = QHBoxLayout()
-        marca = QLabel("◆ NEX ARCH")
-        marca.setObjectName("Marca")
+        marca = QLabel()
+        logo = QPixmap(str(RUTA_ASSETS / "logo-nex.png"))
+        if logo.isNull():
+            marca.setText("◆ NEX ARCH")
+            marca.setObjectName("Marca")
+        else:
+            marca.setPixmap(logo.scaledToHeight(46, Qt.TransformationMode.SmoothTransformation))
         brillo(marca, "#ff2fb3", 24)
 
         self.lbl_paso = QLabel("")
@@ -827,6 +846,10 @@ class NexOptimizerGUI(QMainWindow):
         self.vista_tema.setObjectName("Titulo")
         self.vista_tema.setAlignment(Qt.AlignmentFlag.AlignCenter)
         dl.addWidget(etiqueta)
+        self.preview = QLabel()
+        self.preview.setFixedSize(320, 180)
+        self.preview.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        dl.addWidget(self.preview)
         dl.addWidget(self.vista_tema, 1)
         rejilla_temas = QGridLayout()
         self.vistas_tema = []
@@ -857,6 +880,10 @@ class NexOptimizerGUI(QMainWindow):
     def fijar_tema(self, nombre, animar=True):
         self.estado["tema"] = nombre
         self.vista_tema.setText(f"{nombre}\nHyprland · Kitty · Waybar")
+        imagen = fondo_de(nombre)
+        if not imagen.isNull():
+            self.preview.setPixmap(imagen.scaled(320, 180, Qt.AspectRatioMode.KeepAspectRatioByExpanding,
+                                                 Qt.TransformationMode.SmoothTransformation))
         brillo(self.vista_tema, "#2ee6ff" if nombre == "NEX NEÓN" else "#9d5cff", 26)
         for vista in self.vistas_tema:
             vista.set_seleccionada(vista.nombre == nombre)

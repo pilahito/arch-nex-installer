@@ -215,6 +215,7 @@ def construir_plan(estado: dict) -> Tuple[List[Paso], List[str]]:
     paleta = PALETAS_TEMA.get(tema)
     if paleta:
         pasos.append(Paso(f"Aplicar el tema {tema}", "cmd", ["__TEMA__", paleta], root=False))
+        pasos += _pasos_fondo(paleta)
     elif tema:
         avisos.append(f"El tema '{tema}' todavía no tiene paleta: se usa el tema neón.")
         pasos.append(Paso("Aplicar el tema neón", "cmd", ["__TEMA__", "neon"], root=False))
@@ -236,6 +237,20 @@ def construir_plan(estado: dict) -> Tuple[List[Paso], List[str]]:
                           ["journalctl", "--vacuum-size=50M"]))
 
     return pasos, avisos
+
+
+def _pasos_fondo(paleta: str) -> List[Paso]:
+    """Copia el fondo del tema a la carpeta del usuario y lo fija en hyprpaper."""
+    origen = DIR / "assets" / "fondos" / f"{paleta}.png"
+    carpeta = Path.home() / ".local" / "share" / "nex" / "fondos"
+    destino = carpeta / f"{paleta}.png"
+    return [
+        Paso("Copiar el fondo de pantalla del tema", "cmd",
+             ["bash", "-c", f"mkdir -p '{carpeta}' && cp '{origen}' '{destino}'"], root=False),
+        Paso("Configurar el fondo en hyprpaper", "archivo",
+             contenido=f"preload = {destino}\nwallpaper = ,{destino}\n",
+             destino=str(Path.home() / ".config" / "hypr" / "hyprpaper.conf"), root=False),
+    ]
 
 
 def buscar_script_tema() -> Optional[Path]:

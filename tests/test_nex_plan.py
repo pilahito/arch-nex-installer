@@ -79,6 +79,12 @@ class PlanTest(unittest.TestCase):
         self.assertEqual(tema[0].args[1], "claro")
         self.assertFalse(tema[0].root)
 
+    def test_fondo_de_tema_se_copia_y_se_fija(self):
+        pasos, _ = np.construir_plan(estado_base(tema="OSCURO"))
+        textos = " ".join(" ".join(p.args) + " " + p.destino for p in pasos)
+        self.assertIn("oscuro.png", textos)
+        self.assertTrue(any(p.destino.endswith("hyprpaper.conf") for p in pasos))
+
     def test_tema_sin_paleta_avisa_y_usa_neon(self):
         pasos, avisos = np.construir_plan(estado_base(tema="HYDE"))
         tema = [p for p in pasos if p.args[:1] == ["__TEMA__"]]

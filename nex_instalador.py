@@ -39,12 +39,23 @@ GIB = 1024 ** 3
 MINIMO_DISCO_GIB = 9
 
 # Pares de color
-PAR_NORMAL, PAR_TITULO, PAR_BANNER, PAR_SELECCION, PAR_AVISO, PAR_OK, PAR_ERROR = range(1, 8)
+(PAR_NORMAL, PAR_TITULO, PAR_BANNER, PAR_SELECCION, PAR_AVISO, PAR_OK, PAR_ERROR,
+ PAR_BORDE, PAR_NEON, PAR_DIM) = range(1, 11)
+
+# Logo en bloques, estilo terminal de Linux
+LOGO = [
+    "███╗   ██╗███████╗██╗  ██╗",
+    "████╗  ██║██╔════╝╚██╗██╔╝",
+    "██╔██╗ ██║█████╗   ╚███╔╝ ",
+    "██║╚██╗██║██╔══╝   ██╔██╗ ",
+    "██║ ╚████║███████╗██╔╝ ██╗",
+    "╚═╝  ╚═══╝╚══════╝╚═╝  ╚═╝",
+]
 
 PIE_MENU = "↑↓ mover · Enter elegir · Esc cancelar"
 PIE_TEXTO = "Escribe y pulsa Enter · Esc cancelar"
 
-ICONOS = {"pendiente": " ", "en curso": "›", "hecho": "✔", "error": "✖"}
+ICONOS = {"pendiente": "○", "en curso": "◉", "hecho": "✔", "error": "✖"}
 
 
 class Cancelado(Exception):
@@ -162,11 +173,14 @@ def iniciar_colores():
     curses.use_default_colors()
     curses.init_pair(PAR_NORMAL, curses.COLOR_WHITE, -1)
     curses.init_pair(PAR_TITULO, curses.COLOR_CYAN, -1)
-    curses.init_pair(PAR_BANNER, curses.COLOR_WHITE, curses.COLOR_MAGENTA)
-    curses.init_pair(PAR_SELECCION, curses.COLOR_BLACK, curses.COLOR_CYAN)
+    curses.init_pair(PAR_BANNER, curses.COLOR_BLACK, curses.COLOR_CYAN)
+    curses.init_pair(PAR_SELECCION, curses.COLOR_BLACK, curses.COLOR_MAGENTA)
     curses.init_pair(PAR_AVISO, curses.COLOR_YELLOW, -1)
     curses.init_pair(PAR_OK, curses.COLOR_GREEN, -1)
     curses.init_pair(PAR_ERROR, curses.COLOR_RED, -1)
+    curses.init_pair(PAR_BORDE, curses.COLOR_MAGENTA, -1)
+    curses.init_pair(PAR_NEON, curses.COLOR_MAGENTA, -1)
+    curses.init_pair(PAR_DIM, curses.COLOR_BLUE, -1)
 
 
 def color(par, extra=0):
@@ -183,12 +197,31 @@ def escribir(scr, y, x, texto, atributo=0):
         pass
 
 
+def caja(scr, y0, x0, y1, x1):
+    """Marco redondeado en magenta, como las ventanas de los temas de Linux."""
+    a = color(PAR_BORDE)
+    escribir(scr, y0, x0, "╭" + "─" * (x1 - x0 - 1) + "╮", a)
+    for y in range(y0 + 1, y1):
+        escribir(scr, y, x0, "│", a)
+        escribir(scr, y, x1, "│", a)
+    escribir(scr, y1, x0, "╰" + "─" * (x1 - x0 - 1) + "╯", a)
+
+
 def marco(scr, titulo, pie):
     scr.erase()
     alto, ancho = scr.getmaxyx()
-    escribir(scr, 0, 0, " NEX ARCH · INSTALADOR ".ljust(ancho), color(PAR_BANNER, curses.A_BOLD))
-    escribir(scr, 2, 3, titulo, color(PAR_TITULO, curses.A_BOLD))
-    escribir(scr, alto - 1, 0, pie.ljust(ancho), color(PAR_BANNER))
+    barra = f" ◆ nex@arch-live · instalador · {time.strftime('%H:%M')} "
+    escribir(scr, 0, 0, barra.ljust(ancho), color(PAR_BANNER, curses.A_BOLD))
+    caja(scr, 1, 1, alto - 2, ancho - 2)
+    escribir(scr, 2, 4, f" ▸ {titulo} ", color(PAR_NEON, curses.A_BOLD))
+    escribir(scr, alto - 1, 0, f" {pie} ".ljust(ancho), color(PAR_BANNER))
+
+
+def pintar_logo(scr, y):
+    for i, linea in enumerate(LOGO):
+        escribir(scr, y + i, 4, linea, color(PAR_NEON, curses.A_BOLD))
+    escribir(scr, y + len(LOGO), 4, "arch linux · hyprland · en español", color(PAR_DIM))
+    return y + len(LOGO) + 1
 
 
 def parrafo(scr, y, texto, atributo=None):
@@ -231,8 +264,10 @@ def menu(scr, titulo, texto, opciones):
         marco(scr, titulo, PIE_MENU)
         fila = parrafo(scr, 4, texto) + 1
         for i, (_, etiqueta) in enumerate(opciones):
-            atributo = color(PAR_SELECCION, curses.A_BOLD) if i == indice else color(PAR_NORMAL)
-            escribir(scr, fila + i, 6, f" {etiqueta} ", atributo)
+            if i == indice:
+                escribir(scr, fila + i, 4, f" ▶ {etiqueta}  ", color(PAR_SELECCION, curses.A_BOLD))
+            else:
+                escribir(scr, fila + i, 4, f"   {etiqueta}", color(PAR_NORMAL))
         scr.refresh()
         tecla = leer_tecla(scr)
         if tecla == "arriba":
@@ -252,7 +287,10 @@ def pedir_texto(scr, titulo, texto, defecto="", validar=None, secreto=False):
         marco(scr, titulo, PIE_TEXTO)
         fila = parrafo(scr, 4, texto) + 1
         visible = "•" * len(valor) if secreto else valor
-        escribir(scr, fila, 6, f"> {visible}█", color(PAR_SELECCION))
+        escribir(scr, fila, 4, "─" * 44, color(PAR_DIM))
+        escribir(scr, fila + 1, 4, f"❯ {visible}█", color(PAR_NEON, curses.A_BOLD))
+        escribir(scr, fila + 2, 4, "─" * 44, color(PAR_DIM))
+        fila += 2
         if aviso:
             escribir(scr, fila + 2, 6, aviso, color(PAR_ERROR, curses.A_BOLD))
         scr.refresh()
@@ -278,10 +316,11 @@ def mostrar_aviso(scr, titulo, texto, pie="Pulsa cualquier tecla para continuar"
 
 
 def pantalla_bienvenida(scr):
-    marco(scr, "Bienvenido a Nex Arch", "Enter para empezar · Esc para salir")
-    fila = parrafo(scr, 4, "Este instalador te guía paso a paso para instalar Arch Linux con el escritorio Nex.")
+    marco(scr, "Bienvenido", "Enter empezar · Esc salir")
+    fila = pintar_logo(scr, 4) + 1
+    fila = parrafo(scr, fila, "Te guío paso a paso para instalar Arch Linux con el escritorio Nex.")
     fila = parrafo(scr, fila + 1, "\n".join(info_sistema()), color(PAR_TITULO))
-    parrafo(scr, fila + 1, "Atención: el disco que elijas se borrará por completo.", color(PAR_AVISO))
+    parrafo(scr, fila + 1, "⚠ El disco que elijas se borrará por completo.", color(PAR_AVISO))
     scr.refresh()
     while True:
         tecla = leer_tecla(scr)
@@ -372,17 +411,25 @@ PASOS = [
 
 
 def pintar_progreso(scr, estados, registro):
-    marco(scr, "Instalando Nex Arch", "Espera, no apagues el equipo")
+    marco(scr, "Instalando Nex Arch", "Espera · no apagues el equipo")
+    alto, ancho = scr.getmaxyx()
+    hechos = sum(1 for e in estados if e == "hecho")
+    total = len(PASOS)
+    largo = max(10, min(50, ancho - 24))
+    lleno = int(largo * hechos / total)
+    barra = "█" * lleno + "░" * (largo - lleno)
+    escribir(scr, 4, 4, f"[{barra}] {hechos * 100 // total:3d}%", color(PAR_NEON, curses.A_BOLD))
     for i, paso in enumerate(PASOS):
         estado = estados[i]
         atributo = {"hecho": color(PAR_OK, curses.A_BOLD), "error": color(PAR_ERROR, curses.A_BOLD),
-                    "en curso": color(PAR_TITULO, curses.A_BOLD)}.get(estado, color(PAR_NORMAL))
-        escribir(scr, 4 + i, 4, f"{ICONOS[estado]} {paso}", atributo)
-    alto = scr.getmaxyx()[0]
-    espacio = max(3, alto - 4 - len(PASOS) - 4)
-    escribir(scr, 4 + len(PASOS) + 1, 4, "Registro:", color(PAR_TITULO))
-    for i, linea in enumerate(registro[-espacio:]):
-        escribir(scr, 4 + len(PASOS) + 2 + i, 6, linea[:200], color(PAR_NORMAL))
+                    "en curso": color(PAR_NEON, curses.A_BOLD)}.get(estado, color(PAR_DIM))
+        escribir(scr, 6 + i, 4, f" {ICONOS[estado]}  {paso}", atributo)
+    base = 6 + total + 1
+    escribir(scr, base, 4, "─── registro " + "─" * max(0, largo - 8), color(PAR_DIM))
+    espacio = alto - base - 4
+    if espacio > 0:
+        for i, linea in enumerate(registro[-espacio:]):
+            escribir(scr, base + 1 + i, 6, linea[:200], color(PAR_NORMAL))
     scr.refresh()
 
 

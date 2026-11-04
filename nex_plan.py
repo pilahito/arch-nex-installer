@@ -48,6 +48,8 @@ PAQUETES_APPS = {
     "Fastfetch": "fastfetch",
     "GIMP": "gimp",
     "Blender": "blender",
+    "Inkscape": "inkscape",
+    "Krita": "krita",
     "VS Code": "code",
     "Node.js": "nodejs npm",
     "Git": "git",

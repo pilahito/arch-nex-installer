@@ -213,7 +213,8 @@ def marco(scr, titulo, pie):
     barra = f" ◆ nex@arch-live · instalador · {time.strftime('%H:%M')} "
     escribir(scr, 0, 0, barra.ljust(ancho), color(PAR_BANNER, curses.A_BOLD))
     caja(scr, 1, 1, alto - 2, ancho - 2)
-    escribir(scr, 2, 4, f" ▸ {titulo} ", color(PAR_NEON, curses.A_BOLD))
+    # Título en una barra rellena, como en el estilo del vídeo de referencia
+    escribir(scr, 2, 3, f" ▸ {titulo} ".ljust(ancho - 6), color(PAR_BANNER, curses.A_BOLD))
     escribir(scr, alto - 1, 0, f" {pie} ".ljust(ancho), color(PAR_BANNER))
 
 
@@ -417,8 +418,16 @@ def pintar_progreso(scr, estados, registro):
     total = len(PASOS)
     largo = max(10, min(50, ancho - 24))
     lleno = int(largo * hechos / total)
-    barra = "█" * lleno + "░" * (largo - lleno)
-    escribir(scr, 4, 4, f"[{barra}] {hechos * 100 // total:3d}%", color(PAR_NEON, curses.A_BOLD))
+    # Barra con degradado: parte hecha en magenta, borde en cian y resto atenuado
+    x = 4
+    escribir(scr, 4, x, "█" * lleno, color(PAR_NEON, curses.A_BOLD))
+    x += lleno
+    if lleno < largo:
+        escribir(scr, 4, x, "▓", color(PAR_TITULO, curses.A_BOLD))
+        x += 1
+        escribir(scr, 4, x, "░" * (largo - lleno - 1), color(PAR_DIM))
+        x += largo - lleno - 1
+    escribir(scr, 4, x + 2, f"{hechos * 100 // total:3d}%", color(PAR_TITULO, curses.A_BOLD))
     for i, paso in enumerate(PASOS):
         estado = estados[i]
         atributo = {"hecho": color(PAR_OK, curses.A_BOLD), "error": color(PAR_ERROR, curses.A_BOLD),

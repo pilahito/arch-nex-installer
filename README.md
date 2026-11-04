@@ -27,13 +27,20 @@ Desde el ISO de Arch, como root:
 bash instalar-nex.sh
 ```
 
-Sigue los menús: disco, confirmación, nombre del equipo, usuario, zona horaria, contraseñas, tema y resumen final.
+Se abre una interfaz de pantalla completa dentro de la terminal, con los pasos: bienvenida con datos del equipo, disco (el del ISO no aparece), confirmación del borrado escribiendo el nombre del disco, equipo, usuario, zona horaria, contraseñas, tema, resumen y barra de progreso.
+
+Para recorrer las pantallas sin tocar ningún disco:
+
+```bash
+python3 nex_instalador.py --simular
+```
 
 ## Estructura
 
 ```
-instalar-nex.sh          instalador (menús, archinstall y tema)
-generar_config.py          genera config.json y creds.json para archinstall
+instalar-nex.sh          lanza el instalador (ejecuta nex_instalador.py)
+nex_instalador.py        interfaz de pantalla completa (curses) y flujo de instalación
+generar_config.py        genera config.json y creds.json para archinstall
 post-instalacion/
   aplicar-tema.sh          aplica el tema al usuario (dentro de la instalación)
 tema/
@@ -42,6 +49,7 @@ tema/
   plantillas/              configuración de Hyprland y kitty con marcadores de color
 tests/
   test_generar_config.py   pruebas del generador (python3 -m unittest discover -s tests)
+  test_nex_instalador.py   pruebas de la interfaz, incluido un recorrido en simulación
   test_aplicar_tema.sh     pruebas del tema sobre una raíz falsa
 ```
 

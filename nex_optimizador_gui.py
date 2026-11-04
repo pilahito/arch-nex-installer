@@ -17,8 +17,10 @@ import shutil
 import sys
 from pathlib import Path
 
-from PyQt6.QtCore import Qt, QEasingCurve, QPropertyAnimation, QThread, QTimer, pyqtSignal
-from PyQt6.QtGui import QColor
+import math
+
+from PyQt6.QtCore import QPointF, Qt, QEasingCurve, QPropertyAnimation, QThread, QTimer, pyqtSignal
+from PyQt6.QtGui import QColor, QFont, QLinearGradient, QPainter, QPen
 from PyQt6.QtWidgets import (
     QApplication, QCheckBox, QComboBox, QDialog, QFrame, QGraphicsDropShadowEffect,
     QGraphicsOpacityEffect, QGridLayout, QHBoxLayout, QInputDialog, QLabel, QLineEdit,
@@ -248,6 +250,109 @@ class Trabajador(QThread):
         self.terminado.emit(ok)
 
 
+# Colores de cada tema para las miniaturas: (fondo, acento, secundario)
+PALETAS_VISTA = {
+    "NEX NEÓN": ("#120a24", "#2ee6ff", "#ff2fb3"),
+    "OSCURO": ("#0b1020", "#00d4ff", "#7b5cff"),
+    "CLARO": ("#f5f7fa", "#0077b6", "#5b3fd6"),
+    "HYDE": ("#0f0f14", "#9d9dff", "#5f5fb0"),
+}
+
+
+class VistaTema(QFrame):
+    """Miniatura de un tema: una ventana de muestra con sus colores."""
+
+    pulsada = pyqtSignal(str)
+
+    def __init__(self, nombre):
+        super().__init__()
+        self.nombre = nombre
+        self.seleccionada = False
+        self.setMinimumSize(150, 110)
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+
+    def set_seleccionada(self, valor):
+        self.seleccionada = valor
+        self.update()
+
+    def mousePressEvent(self, evento):
+        self.pulsada.emit(self.nombre)
+
+    def paintEvent(self, evento):
+        p = QPainter(self)
+        p.setRenderHint(QPainter.RenderHint.Antialiasing)
+        fondo, acento, secundario = PALETAS_VISTA.get(self.nombre, ("#111111", "#2ee6ff", "#ff2fb3"))
+        ancho, alto = self.width(), self.height()
+        marco = self.rect().adjusted(3, 3, -3, -3)
+
+        gradiente = QLinearGradient(0, 0, ancho, alto)
+        gradiente.setColorAt(0.0, QColor(fondo))
+        gradiente.setColorAt(1.0, QColor(secundario).darker(260))
+        p.setBrush(gradiente)
+        p.setPen(QPen(QColor(acento) if self.seleccionada else QColor("#1f2d52"), 2 if self.seleccionada else 1))
+        p.drawRoundedRect(marco, 12, 12)
+
+        # Barra de la ventana de muestra y dos paneles
+        p.setPen(Qt.PenStyle.NoPen)
+        p.setBrush(QColor(acento))
+        p.drawRoundedRect(12, 12, ancho - 24, 9, 4, 4)
+        p.setBrush(QColor(255, 255, 255, 36))
+        p.drawRoundedRect(12, 28, ancho - 24, alto - 62, 8, 8)
+        p.setBrush(QColor(secundario))
+        p.drawRoundedRect(18, 34, (ancho - 36) // 3, alto - 74, 6, 6)
+
+        p.setPen(QColor("#f4eaff"))
+        p.setFont(QFont("DejaVu Sans Mono", 9, QFont.Weight.Bold))
+        p.drawText(0, alto - 26, ancho, 20, Qt.AlignmentFlag.AlignCenter, self.nombre)
+        p.end()
+
+
+class CheckGlow(QWidget):
+    """Insignia de éxito: anillo con halo, rayos animados y una marca de verificación."""
+
+    def __init__(self):
+        super().__init__()
+        self.setMinimumSize(200, 190)
+        self.fase = 0
+        self.timer = QTimer(self)
+        self.timer.timeout.connect(self._avanzar)
+        self.timer.start(60)
+
+    def _avanzar(self):
+        self.fase = (self.fase + 1) % 120
+        self.update()
+
+    def paintEvent(self, evento):
+        p = QPainter(self)
+        p.setRenderHint(QPainter.RenderHint.Antialiasing)
+        cx, cy = self.width() / 2, self.height() / 2
+        radio = min(self.width(), self.height()) / 3
+
+        p.setPen(QPen(QColor("#2ee6ff"), 2))
+        for i in range(24):
+            angulo = i * math.pi / 12 + self.fase * 0.01
+            r_dentro = radio * 1.15
+            r_fuera = radio * (1.5 + 0.2 * math.sin(self.fase / 10 + i))
+            p.drawLine(
+                QPointF(cx + r_dentro * math.cos(angulo), cy + r_dentro * math.sin(angulo)),
+                QPointF(cx + r_fuera * math.cos(angulo), cy + r_fuera * math.sin(angulo)),
+            )
+
+        for k in range(6):
+            p.setPen(QPen(QColor(46, 230, 255, max(10, 60 - k * 9)), 6 - k))
+            p.setBrush(Qt.BrushStyle.NoBrush)
+            p.drawEllipse(QPointF(cx, cy), radio + k * 3, radio + k * 3)
+
+        p.setPen(QPen(QColor("#80fab4"), 8))
+        p.drawEllipse(QPointF(cx, cy), radio, radio)
+
+        p.setPen(QPen(QColor("#80fab4"), 10, Qt.PenStyle.SolidLine,
+                      Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin))
+        p.drawLine(QPointF(cx - radio * 0.45, cy), QPointF(cx - radio * 0.1, cy + radio * 0.35))
+        p.drawLine(QPointF(cx - radio * 0.1, cy + radio * 0.35), QPointF(cx + radio * 0.5, cy - radio * 0.35))
+        p.end()
+
+
 class NexOptimizerGUI(QMainWindow):
     PASOS = [
         "GPU", "Almacenamiento", "Equipo", "Oficina", "Aplicaciones",
@@ -453,7 +558,8 @@ class NexOptimizerGUI(QMainWindow):
             "Almacenamiento",
             "En SSD o M.2 se activa el recorte semanal (fstrim).",
             [
-                ("SSD / M.2", "fstrim.timer activado"),
+                ("SSD / M.2", "Recomendado · fstrim.timer activado"),
+                ("SATA SSD", "fstrim.timer activado"),
                 ("HDD", "sin recorte: el disco mecánico no lo necesita"),
             ],
             "almacenamiento",
@@ -599,12 +705,12 @@ class NexOptimizerGUI(QMainWindow):
         dl.addWidget(etiqueta)
         dl.addWidget(self.vista_tema, 1)
         rejilla_temas = QGridLayout()
-        self.botones_tema = []
-        for i, nombre in enumerate(["NEX NEÓN", "OSCURO", "CLARO", "HYDE", "CATPPUCCIN", "TOKYO NIGHT"]):
-            b = QPushButton(nombre)
-            b.clicked.connect(lambda _, n=nombre: self.fijar_tema(n))
-            self.botones_tema.append((nombre, b))
-            rejilla_temas.addWidget(b, i // 3, i % 3)
+        self.vistas_tema = []
+        for i, nombre in enumerate(["NEX NEÓN", "OSCURO", "CLARO", "HYDE"]):
+            vista = VistaTema(nombre)
+            vista.pulsada.connect(self.fijar_tema)
+            self.vistas_tema.append(vista)
+            rejilla_temas.addWidget(vista, i // 2, i % 2)
         dl.addLayout(rejilla_temas)
         self.fijar_tema(self.estado["tema"], animar=False)
 
@@ -628,10 +734,8 @@ class NexOptimizerGUI(QMainWindow):
         self.estado["tema"] = nombre
         self.vista_tema.setText(f"{nombre}\nHyprland · Kitty · Waybar")
         brillo(self.vista_tema, "#2ee6ff" if nombre == "NEX NEÓN" else "#9d5cff", 26)
-        for n, b in self.botones_tema:
-            b.setObjectName("Primario" if n == nombre else "")
-            b.style().unpolish(b)
-            b.style().polish(b)
+        for vista in self.vistas_tema:
+            vista.set_seleccionada(vista.nombre == nombre)
 
     def guardar_hyprland(self):
         self.estado["wallpaper"] = self.cmb_wallpaper.currentText()
@@ -689,6 +793,9 @@ class NexOptimizerGUI(QMainWindow):
         self.lbl_resumen.setObjectName("Info")
         self.lbl_resumen.setWordWrap(True)
         self.lbl_resumen.setTextFormat(Qt.TextFormat.PlainText)
+        self.check = CheckGlow()
+        self.check.setVisible(False)
+        il.addWidget(self.check, alignment=Qt.AlignmentFlag.AlignCenter)
         il.addWidget(self.lbl_estado_final)
         il.addWidget(self.progreso)
         il.addWidget(self.lbl_resumen, 1)
@@ -779,6 +886,7 @@ class NexOptimizerGUI(QMainWindow):
         self.lbl_estado_final.setText(f"PASO {hecho} DE {total}")
 
     def terminar_plan(self, ok):
+        self.check.setVisible(ok)
         if ok:
             self.progreso.setValue(self.progreso.maximum())
             self.lbl_estado_final.setText("✔ TU EQUIPO ESTÁ LISTO")

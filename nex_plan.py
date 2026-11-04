@@ -135,7 +135,7 @@ def construir_plan(estado: dict) -> Tuple[List[Paso], List[str]]:
         repo += PAQUETES_GPU[gpu]
 
     # 2. Almacenamiento
-    if estado.get("almacenamiento") == "SSD / M.2":
+    if estado.get("almacenamiento") in ("SSD / M.2", "SATA SSD"):
         pasos.append(_systemctl(["enable", "--now"], ["fstrim.timer"], "Activar el recorte semanal del SSD"))
 
     # 3. Equipo portátil: perfil de energía

@@ -140,9 +140,7 @@ def leer_gpu():
 
 def info_sistema():
     """Líneas de la pantalla de bienvenida."""
-    if SIMULAR:
-        return ["Modo simulación: no se tocará ningún disco.", "CPU: procesador de prueba", "RAM: 8 GiB"]
-    modo = "UEFI" if Path("/sys/firmware/efi").is_dir() else "BIOS (no compatible)"
+    modo ="UEFI" if Path("/sys/firmware/efi").is_dir() else "BIOS (no compatible)"
     return [
         f"Procesador: {leer_cpu()}",
         f"Memoria RAM: {leer_ram_gib()} GiB",

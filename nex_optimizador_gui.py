@@ -250,6 +250,118 @@ class Trabajador(QThread):
         self.terminado.emit(ok)
 
 
+# Colores de acento para iconos y categorías
+COLOR_CIAN = "#2ee6ff"
+COLOR_MAGENTA = "#ff2fb3"
+COLOR_VIOLETA = "#9d5cff"
+COLOR_VERDE = "#80fab4"
+COLOR_AMBAR = "#ffc857"
+
+# Icono de cada opción de tarjeta y de cada página
+ICONO_OPCION = {
+    "INTEL": "gpu", "NVIDIA": "gpu", "AMD": "gpu",
+    "SSD / M.2": "disco", "SATA SSD": "disco", "HDD": "disco",
+    "Escritorio": "escritorio", "Portátil": "portatil",
+    "Seguro": "escudo", "Medio": "gauge", "Extremo": "rayo",
+}
+ICONO_PAGINA = {
+    "Gráficos": "gpu",
+    "Almacenamiento": "disco",
+    "Tipo de equipo": "portatil",
+    "Oficina · LibreOffice": "oficina",
+    "Aplicaciones": "apps",
+    "Escritorio · Hyprland": "hyprland",
+    "Modo de optimización": "gauge",
+    "Limpieza del sistema": "limpieza",
+}
+
+
+def _poligono(p, puntos):
+    from PyQt6.QtGui import QPolygonF
+    p.drawPolygon(QPolygonF([QPointF(x, y) for x, y in puntos]))
+
+
+def _dibujar_icono(p, tipo, m, w, c):
+    from PyQt6.QtCore import QRectF
+    relleno = QColor(c)
+    relleno.setAlpha(45)
+    p.setBrush(relleno)
+    if tipo == "gpu":
+        p.drawRoundedRect(QRectF(m, m + w * 0.18, w, w * 0.6), 6, 6)
+        for i in range(5):
+            x = m + w * (0.12 + i * 0.19)
+            p.drawLine(QPointF(x, m + w * 0.78), QPointF(x, m + w))
+    elif tipo == "disco":
+        p.drawRoundedRect(QRectF(m, m + w * 0.1, w, w * 0.8), 8, 8)
+        p.drawEllipse(QPointF(m + w * 0.72, m + w * 0.5), w * 0.1, w * 0.1)
+        p.drawLine(QPointF(m + w * 0.12, m + w * 0.62), QPointF(m + w * 0.55, m + w * 0.62))
+    elif tipo == "portatil":
+        p.drawRoundedRect(QRectF(m + w * 0.12, m + w * 0.08, w * 0.76, w * 0.56), 4, 4)
+        p.drawRoundedRect(QRectF(m, m + w * 0.7, w, w * 0.14), 4, 4)
+    elif tipo == "escritorio":
+        p.drawRoundedRect(QRectF(m, m + w * 0.05, w, w * 0.65), 5, 5)
+        p.drawLine(QPointF(m + w / 2, m + w * 0.7), QPointF(m + w / 2, m + w * 0.9))
+        p.drawLine(QPointF(m + w * 0.25, m + w * 0.92), QPointF(m + w * 0.75, m + w * 0.92))
+    elif tipo == "gauge":
+        p.drawArc(QRectF(m, m, w, w), 210 * 16, -240 * 16)
+        p.drawLine(QPointF(m + w / 2, m + w / 2), QPointF(m + w * 0.78, m + w * 0.3))
+    elif tipo == "oficina":
+        p.drawRoundedRect(QRectF(m + w * 0.15, m, w * 0.7, w), 4, 4)
+        for i in range(3):
+            y = m + w * (0.3 + i * 0.2)
+            p.drawLine(QPointF(m + w * 0.3, y), QPointF(m + w * 0.7, y))
+    elif tipo == "apps":
+        for x in (0, 1):
+            for y in (0, 1):
+                p.drawRoundedRect(QRectF(m + x * w * 0.55, m + y * w * 0.55, w * 0.42, w * 0.42), 4, 4)
+    elif tipo == "hyprland":
+        _poligono(p, [(m + w * 0.5 + w * 0.5 * math.cos(math.radians(a)),
+                       m + w * 0.5 + w * 0.5 * math.sin(math.radians(a))) for a in range(0, 360, 60)])
+    elif tipo == "limpieza":
+        p.drawLine(QPointF(m + w * 0.15, m + w * 0.2), QPointF(m + w * 0.85, m + w * 0.2))
+        p.drawRoundedRect(QRectF(m + w * 0.25, m + w * 0.3, w * 0.5, w * 0.65), 4, 4)
+    elif tipo == "escudo":
+        _poligono(p, [(m + w * 0.5, m), (m + w, m + w * 0.2), (m + w * 0.9, m + w * 0.7),
+                      (m + w * 0.5, m + w), (m + w * 0.1, m + w * 0.7), (m, m + w * 0.2)])
+    elif tipo == "rayo":
+        _poligono(p, [(m + w * 0.6, m), (m + w * 0.15, m + w * 0.6), (m + w * 0.5, m + w * 0.6),
+                      (m + w * 0.4, m + w), (m + w * 0.85, m + w * 0.4), (m + w * 0.5, m + w * 0.4)])
+    else:
+        p.drawEllipse(QRectF(m, m, w, w))
+
+
+class Icono(QWidget):
+    """Icono vectorial de color, dibujado con QPainter (sin ficheros externos)."""
+
+    def __init__(self, tipo, color=COLOR_CIAN, tamano=56):
+        super().__init__()
+        self.tipo = tipo
+        self.color = QColor(color)
+        self.setFixedSize(tamano, tamano)
+
+    def paintEvent(self, evento):
+        p = QPainter(self)
+        p.setRenderHint(QPainter.RenderHint.Antialiasing)
+        tamano = self.width()
+        pen = QPen(self.color, max(2, tamano // 16))
+        p.setPen(pen)
+        _dibujar_icono(p, self.tipo, tamano * 0.14, tamano * 0.72, self.color)
+        p.end()
+
+
+def icono_ventana(tipo=None, color=COLOR_CIAN, tamano=64):
+    """Imagen para usar como icono de la ventana o del programa."""
+    from PyQt6.QtGui import QIcon, QPixmap
+    pixmap = QPixmap(tamano, tamano)
+    pixmap.fill(Qt.GlobalColor.transparent)
+    p = QPainter(pixmap)
+    p.setRenderHint(QPainter.RenderHint.Antialiasing)
+    p.setPen(QPen(QColor(color), max(2, tamano // 16)))
+    _dibujar_icono(p, tipo or "rayo", tamano * 0.14, tamano * 0.72, QColor(color))
+    p.end()
+    return QIcon(pixmap)
+
+
 # Colores de cada tema para las miniaturas: (fondo, acento, secundario)
 PALETAS_VISTA = {
     "NEX NEÓN": ("#120a24", "#2ee6ff", "#ff2fb3"),
@@ -447,6 +559,8 @@ class NexOptimizerGUI(QMainWindow):
 
     def encabezado(self, titulo, subtitulo):
         caja = QVBoxLayout()
+        if titulo in ICONO_PAGINA:
+            caja.addWidget(Icono(ICONO_PAGINA[titulo], COLOR_CIAN, 52), alignment=Qt.AlignmentFlag.AlignCenter)
         lbl_t = QLabel(titulo)
         lbl_t.setObjectName("Titulo")
         lbl_t.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -504,6 +618,9 @@ class NexOptimizerGUI(QMainWindow):
             card = self.tarjeta(self.estado[clave] == nombre)
             cl = QVBoxLayout(card)
             cl.setContentsMargins(20, 22, 20, 22)
+            if nombre in ICONO_OPCION:
+                color = COLOR_MAGENTA if self.estado[clave] == nombre else COLOR_CIAN
+                cl.addWidget(Icono(ICONO_OPCION[nombre], color, 64), alignment=Qt.AlignmentFlag.AlignCenter)
             lbl_n = QLabel(nombre)
             lbl_n.setObjectName("Titulo")
             lbl_n.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -648,9 +765,16 @@ class NexOptimizerGUI(QMainWindow):
         for col, (cat, apps) in enumerate(categorias.items()):
             card = self.tarjeta()
             cl = QVBoxLayout(card)
+            color_cat = [COLOR_MAGENTA, COLOR_CIAN, COLOR_VIOLETA, COLOR_AMBAR][col % 4]
+            fila_cat = QHBoxLayout()
+            fila_cat.addWidget(Icono({"GAMING": "rayo", "MULTIMEDIA": "apps", "INTERNET": "hyprland",
+                                      "VARIOS": "gauge"}[cat], color_cat, 34))
             etiqueta = QLabel(cat)
             etiqueta.setObjectName("Etiqueta")
-            cl.addWidget(etiqueta)
+            etiqueta.setStyleSheet(f"color: {color_cat};")
+            fila_cat.addWidget(etiqueta)
+            fila_cat.addStretch()
+            cl.addLayout(fila_cat)
             for app in apps:
                 chk = QCheckBox(app)
                 chk.setChecked(app in self.estado["apps"])
@@ -934,7 +1058,9 @@ class NexOptimizerGUI(QMainWindow):
 def main():
     simular = "--simular" in sys.argv
     app = QApplication(sys.argv)
+    app.setWindowIcon(icono_ventana("rayo", COLOR_CIAN))
     ventana = NexOptimizerGUI(simular=simular)
+    ventana.setWindowIcon(icono_ventana("rayo", COLOR_CIAN))
     ventana.show()
     sys.exit(app.exec())
 

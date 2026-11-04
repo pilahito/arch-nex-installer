@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# Delta Arch: instalador guiado en español.
+# Nex Arch: instalador guiado en español.
 # Se ejecuta desde el ISO oficial de Arch, como root, en modo UEFI.
 #
-#   bash instalar-delta.sh
+#   bash instalar-nex.sh
 #
 # Pasos: elegir disco, confirmar el borrado, datos del equipo, tema, y después
-# archinstall hace la instalación. Al final se aplica el tema Delta.
+# archinstall hace la instalación. Al final se aplica el tema Nex.
 
 set -euo pipefail
 
@@ -15,10 +15,10 @@ chmod 700 "$TRABAJO"
 # Las contraseñas y los ficheros de configuración se borran al salir
 trap 'rm -rf "$TRABAJO"' EXIT
 
-TITULO="DELTA ARCH · Instalador"
+TITULO="NEX ARCH · Instalador"
 MONTAJE=/mnt
 
-# Colores del tema Delta para los menús
+# Colores del tema Nex para los menús
 export NEWT_COLORS='
 root=white,black
 window=white,black
@@ -80,11 +80,11 @@ pedir_password() {
 }
 
 # --- Comprobaciones previas ---
-(( EUID == 0 )) || error "Ejecútalo como root desde el ISO de Arch: sudo bash instalar-delta.sh"
+(( EUID == 0 )) || error "Ejecútalo como root desde el ISO de Arch: sudo bash instalar-nex.sh"
 for orden in whiptail python3 openssl archinstall arch-chroot lsblk mountpoint; do
     command -v "$orden" >/dev/null 2>&1 || error "Falta el comando '$orden'."
 done
-[[ -d /sys/firmware/efi ]] || error "Delta Arch solo funciona con arranque UEFI."
+[[ -d /sys/firmware/efi ]] || error "Nex Arch solo funciona con arranque UEFI."
 
 # --- 1. Disco ---
 opciones=()
@@ -95,7 +95,7 @@ done < <(lsblk -dpno NAME,SIZE,TYPE,MODEL)
 (( ${#opciones[@]} > 0 )) || error "No encuentro discos instalables."
 
 DISCO=$(whiptail --title "$TITULO" --menu \
-    "Elige el disco donde instalar Delta Arch.\nTODO su contenido se borrará." \
+    "Elige el disco donde instalar Nex Arch.\nTODO su contenido se borrará." \
     18 78 8 "${opciones[@]}" 3>&1 1>&2 2>&3) || cancelado
 
 TAMANO_MIB=$(( $(lsblk -bdno SIZE "$DISCO") / 1048576 ))
@@ -106,8 +106,8 @@ confirmacion=$(whiptail --title "$TITULO" --inputbox \
 [[ "$confirmacion" == "$DISCO" ]] || { whiptail --title "$TITULO" --msgbox "No coincide. No se ha borrado nada." 8 50; exit 0; }
 
 # --- 2. Datos del equipo ---
-HOST=$(pedir_texto "Nombre del equipo:" "delta-arch" '^[a-zA-Z0-9-]{1,63}$') || cancelado
-USUARIO=$(pedir_texto "Nombre de tu usuario (minúsculas):" "delta" '^[a-z_][a-z0-9_-]{0,31}$') || cancelado
+HOST=$(pedir_texto "Nombre del equipo:" "nex-arch" '^[a-zA-Z0-9-]{1,63}$') || cancelado
+USUARIO=$(pedir_texto "Nombre de tu usuario (minúsculas):" "nex" '^[a-z_][a-z0-9_-]{0,31}$') || cancelado
 ZONA=$(pedir_texto "Zona horaria:" "Europe/Madrid" '^[A-Za-z_]+(/[A-Za-z_+-]+)*$') || cancelado
 [[ -e "/usr/share/zoneinfo/$ZONA" ]] || error "La zona horaria '$ZONA' no existe."
 
@@ -115,9 +115,9 @@ PASS_USUARIO=$(pedir_password "Contraseña para $USUARIO:") || cancelado
 PASS_ROOT=$(pedir_password "Contraseña para root:") || cancelado
 
 # --- 3. Tema ---
-TEMA=$(whiptail --title "$TITULO" --menu "Elige el tema de Delta Arch:" 14 60 4 \
-    "oscuro" "Delta oscuro (fondo azul marino, acento cian)" \
-    "claro" "Delta claro (fondo blanco, acento azul)" \
+TEMA=$(whiptail --title "$TITULO" --menu "Elige el tema de Nex Arch:" 14 60 4 \
+    "oscuro" "Nex oscuro (fondo azul marino, acento cian)" \
+    "claro" "Nex claro (fondo blanco, acento azul)" \
     3>&1 1>&2 2>&3) || cancelado
 
 # --- 4. Resumen y confirmación final ---
@@ -133,13 +133,13 @@ preguntar "Resumen:
 ¿Empezar la instalación?" || cancelado
 
 # --- 5. Generar la configuración para archinstall ---
-DELTA_DISCO="$DISCO" \
-DELTA_TAMANO_MIB="$TAMANO_MIB" \
-DELTA_HOST="$HOST" \
-DELTA_USUARIO="$USUARIO" \
-DELTA_ZONA="$ZONA" \
-DELTA_PASS_USUARIO="$PASS_USUARIO" \
-DELTA_PASS_ROOT="$PASS_ROOT" \
+NEX_DISCO="$DISCO" \
+NEX_TAMANO_MIB="$TAMANO_MIB" \
+NEX_HOST="$HOST" \
+NEX_USUARIO="$USUARIO" \
+NEX_ZONA="$ZONA" \
+NEX_PASS_USUARIO="$PASS_USUARIO" \
+NEX_PASS_ROOT="$PASS_ROOT" \
 python3 "$DIR/generar_config.py" "$TRABAJO"
 
 unset PASS_USUARIO PASS_ROOT
@@ -148,25 +148,25 @@ unset PASS_USUARIO PASS_ROOT
 echo "==> Instalando Arch con archinstall..."
 archinstall --config "$TRABAJO/config.json" --creds "$TRABAJO/creds.json" --silent
 
-# --- 7. Aplicar el tema Delta al usuario dentro de la instalación ---
-echo "==> Aplicando el tema Delta..."
+# --- 7. Aplicar el tema Nex al usuario dentro de la instalación ---
+echo "==> Aplicando el tema Nex..."
 # shellcheck disable=SC1091
 source "$TRABAJO/particiones.env"
 
 if ! mountpoint -q "$MONTAJE"; then
-    mount "$DELTA_PART_RAIZ" "$MONTAJE"
+    mount "$NEX_PART_RAIZ" "$MONTAJE"
 fi
 if ! mountpoint -q "$MONTAJE/boot"; then
-    mount "$DELTA_PART_EFI" "$MONTAJE/boot"
+    mount "$NEX_PART_EFI" "$MONTAJE/boot"
 fi
 
-DESTINO="$MONTAJE/usr/local/share/delta"
+DESTINO="$MONTAJE/usr/local/share/nex"
 mkdir -p "$DESTINO"
 install -m755 "$DIR/post-instalacion/aplicar-tema.sh" "$DESTINO/aplicar-tema.sh"
 cp -r "$DIR/tema" "$DESTINO/"
-arch-chroot "$MONTAJE" /usr/local/share/delta/aplicar-tema.sh "$USUARIO" "$TEMA"
+arch-chroot "$MONTAJE" /usr/local/share/nex/aplicar-tema.sh "$USUARIO" "$TEMA"
 
 umount -R "$MONTAJE" 2>/dev/null || true
 
 whiptail --title "$TITULO" --msgbox \
-    "Delta Arch está instalado.\n\nQuita el USB y reinicia con:  reboot" 10 60
+    "Nex Arch está instalado.\n\nQuita el USB y reinicia con:  reboot" 10 60

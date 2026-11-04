@@ -1,0 +1,38 @@
+/* Estilo Nex para Waybar (generado por aplicar-tema.sh) */
+* {
+    font-family: "JetBrainsMono Nerd Font", "Noto Sans", sans-serif;
+    font-size: 13px;
+    border: none;
+    border-radius: 0;
+    min-height: 0;
+}
+
+window#waybar {
+    background: rgba(26, 11, 46, 0.85);
+    color: #__TEXTO__;
+    border-bottom: 2px solid #__ACENTO2__;
+}
+
+#workspaces button {
+    padding: 0 8px;
+    color: #__TEXTO__;
+    background: transparent;
+}
+
+#workspaces button.active {
+    color: #__ACENTO__;
+    border-bottom: 2px solid #__ACENTO__;
+}
+
+#clock {
+    color: #__ACENTO2__;
+    font-weight: bold;
+}
+
+#cpu, #memory, #network, #pulseaudio, #tray {
+    padding: 0 10px;
+    color: #__TEXTO__;
+}
+
+#cpu { color: #__ACENTO__; }
+#memory { color: #__ACENTO3__; }

@@ -1,13 +1,13 @@
-# Delta Arch: instalador guiado en español
+# Nex Arch: instalador guiado en español
 
-Instalador de Arch Linux con el tema Delta, pensado para usuarios que no quieren configurar todo a mano. Usa `archinstall`, el instalador oficial de Arch, y añade:
+Instalador de Arch Linux con el tema Nex, pensado para usuarios que no quieren configurar todo a mano. Usa `archinstall`, el instalador oficial de Arch, y añade:
 
-- Menús en español con el estilo Delta.
+- Menús en español con el estilo Nex.
 - Elección de disco con confirmación escribiendo su nombre, para no borrar el disco equivocado.
 - Particiones automáticas y fáciles: EFI de 1 GiB y raíz ext4 con el resto del disco. Swap en zram.
 - Idioma español (es_ES), teclado español y zona horaria elegible.
 - Escritorio Hyprland con SDDM, PipeWire y NetworkManager.
-- Tema Delta aplicado al usuario, en dos paletas: `oscuro` y `claro`.
+- Tema Nex aplicado al usuario, en dos paletas: `oscuro` y `claro`.
 
 ## Qué borra
 
@@ -24,7 +24,7 @@ Instalador de Arch Linux con el tema Delta, pensado para usuarios que no quieren
 Desde el ISO de Arch, como root:
 
 ```bash
-bash instalar-delta.sh
+bash instalar-nex.sh
 ```
 
 Sigue los menús: disco, confirmación, nombre del equipo, usuario, zona horaria, contraseñas, tema y resumen final.
@@ -32,13 +32,13 @@ Sigue los menús: disco, confirmación, nombre del equipo, usuario, zona horaria
 ## Estructura
 
 ```
-instalar-delta.sh          instalador (menús, archinstall y tema)
+instalar-nex.sh          instalador (menús, archinstall y tema)
 generar_config.py          genera config.json y creds.json para archinstall
 post-instalacion/
   aplicar-tema.sh          aplica el tema al usuario (dentro de la instalación)
 tema/
-  paletas/oscuro.env       colores Delta oscuro
-  paletas/claro.env        colores Delta claro
+  paletas/oscuro.env       colores Nex oscuro
+  paletas/claro.env        colores Nex claro
   plantillas/              configuración de Hyprland y kitty con marcadores de color
 tests/
   test_generar_config.py   pruebas del generador (python3 -m unittest discover -s tests)

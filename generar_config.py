@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
-"""Genera la configuración de archinstall para Delta Arch.
+"""Genera la configuración de archinstall para Nex Arch.
 
 Los datos llegan por variables de entorno, así las contraseñas no aparecen
 en la línea de comandos ni en el historial:
 
-  DELTA_DISCO          disco a borrar y particionar, por ejemplo /dev/sda
-  DELTA_TAMANO_MIB     tamaño total del disco en MiB
-  DELTA_HOST           nombre del equipo
-  DELTA_USUARIO        nombre del usuario principal (tendrá sudo)
-  DELTA_ZONA           zona horaria, por ejemplo Europe/Madrid
-  DELTA_PASS_USUARIO   contraseña del usuario
-  DELTA_PASS_ROOT      contraseña de root
+  NEX_DISCO          disco a borrar y particionar, por ejemplo /dev/sda
+  NEX_TAMANO_MIB     tamaño total del disco en MiB
+  NEX_HOST           nombre del equipo
+  NEX_USUARIO        nombre del usuario principal (tendrá sudo)
+  NEX_ZONA           zona horaria, por ejemplo Europe/Madrid
+  NEX_PASS_USUARIO   contraseña del usuario
+  NEX_PASS_ROOT      contraseña de root
 
 Uso:  python3 generar_config.py CARPETA_SALIDA
 Escribe config.json y creds.json en CARPETA_SALIDA.
@@ -64,7 +64,7 @@ def construir_config(datos):
     raiz_inicio = INICIO_EFI_MIB + EFI_MIB
     raiz_tamano = total - raiz_inicio - 1  # 1 MiB de margen al final
     if raiz_tamano < MIN_RAIZ_MIB:
-        raise SystemExit("El disco es demasiado pequeño para Delta Arch (mínimo unos 9 GiB).")
+        raise SystemExit("El disco es demasiado pequeño para Nex Arch (mínimo unos 9 GiB).")
 
     particion_efi = {
         "btrfs": [],
@@ -145,18 +145,18 @@ def main():
     salida = Path(sys.argv[1])
     salida.mkdir(parents=True, exist_ok=True)
 
-    nombre_usuario = leer_entorno("DELTA_USUARIO")
+    nombre_usuario = leer_entorno("NEX_USUARIO")
     if not re.fullmatch(r"[a-z_][a-z0-9_-]{0,31}", nombre_usuario):
         raise SystemExit("El nombre de usuario solo puede tener minúsculas, números, _ o -.")
 
     datos = {
-        "disco": leer_entorno("DELTA_DISCO"),
-        "tamano_mib": leer_entorno("DELTA_TAMANO_MIB"),
-        "host": leer_entorno("DELTA_HOST"),
+        "disco": leer_entorno("NEX_DISCO"),
+        "tamano_mib": leer_entorno("NEX_TAMANO_MIB"),
+        "host": leer_entorno("NEX_HOST"),
         "usuario": nombre_usuario,
-        "zona": leer_entorno("DELTA_ZONA"),
-        "pass_usuario": leer_entorno("DELTA_PASS_USUARIO"),
-        "pass_root": leer_entorno("DELTA_PASS_ROOT"),
+        "zona": leer_entorno("NEX_ZONA"),
+        "pass_usuario": leer_entorno("NEX_PASS_USUARIO"),
+        "pass_root": leer_entorno("NEX_PASS_ROOT"),
     }
 
     config = construir_config(datos)
@@ -168,8 +168,8 @@ def main():
 
     # Nombres de las particiones, para montarlas después de la instalación
     (salida / "particiones.env").write_text(
-        f"DELTA_PART_EFI={particion_de(datos['disco'], 1)}\n"
-        f"DELTA_PART_RAIZ={particion_de(datos['disco'], 2)}\n"
+        f"NEX_PART_EFI={particion_de(datos['disco'], 1)}\n"
+        f"NEX_PART_RAIZ={particion_de(datos['disco'], 2)}\n"
     )
     print(f"Configuración escrita en {salida}")
 

@@ -21,13 +21,13 @@ def generar(disco="/dev/sda", tamano_mib="476940", **extra):
     carpeta = tempfile.mkdtemp()
     entorno = {
         **os.environ,
-        "DELTA_DISCO": disco,
-        "DELTA_TAMANO_MIB": tamano_mib,
-        "DELTA_HOST": "delta-test",
-        "DELTA_USUARIO": "delta",
-        "DELTA_ZONA": "Europe/Madrid",
-        "DELTA_PASS_USUARIO": "clave-usuario",
-        "DELTA_PASS_ROOT": "clave-root",
+        "NEX_DISCO": disco,
+        "NEX_TAMANO_MIB": tamano_mib,
+        "NEX_HOST": "nex-test",
+        "NEX_USUARIO": "nex",
+        "NEX_ZONA": "Europe/Madrid",
+        "NEX_PASS_USUARIO": "clave-usuario",
+        "NEX_PASS_ROOT": "clave-root",
         **extra,
     }
     res = subprocess.run(
@@ -49,7 +49,7 @@ class GenerarConfigTest(unittest.TestCase):
         self.assertEqual(config["locale_config"]["sys_lang"], "es_ES")
         self.assertEqual(config["locale_config"]["kb_layout"], "es")
         self.assertEqual(config["timezone"], "Europe/Madrid")
-        self.assertEqual(config["hostname"], "delta-test")
+        self.assertEqual(config["hostname"], "nex-test")
         self.assertEqual(config["profile_config"]["profile"]["details"], ["Hyprland"])
 
     def test_particiones_efi_y_raiz(self):
@@ -75,19 +75,19 @@ class GenerarConfigTest(unittest.TestCase):
         res, carpeta = generar(disco="/dev/nvme0n1")
         self.assertEqual(res.returncode, 0, res.stderr)
         env = (carpeta / "particiones.env").read_text()
-        self.assertIn("DELTA_PART_EFI=/dev/nvme0n1p1", env)
-        self.assertIn("DELTA_PART_RAIZ=/dev/nvme0n1p2", env)
+        self.assertIn("NEX_PART_EFI=/dev/nvme0n1p1", env)
+        self.assertIn("NEX_PART_RAIZ=/dev/nvme0n1p2", env)
 
         res, carpeta = generar(disco="/dev/sdb")
         env = (carpeta / "particiones.env").read_text()
-        self.assertIn("DELTA_PART_RAIZ=/dev/sdb2", env)
+        self.assertIn("NEX_PART_RAIZ=/dev/sdb2", env)
 
     def test_credenciales_con_hash(self):
         res, carpeta = generar()
         self.assertEqual(res.returncode, 0, res.stderr)
         creds = json.loads((carpeta / "creds.json").read_text())
         usuario = creds["users"][0]
-        self.assertEqual(usuario["username"], "delta")
+        self.assertEqual(usuario["username"], "nex")
         self.assertTrue(usuario["sudo"])
         # La contraseña nunca se guarda en claro
         self.assertNotIn("clave-usuario", (carpeta / "creds.json").read_text())
@@ -103,13 +103,13 @@ class GenerarConfigTest(unittest.TestCase):
         carpeta = tempfile.mkdtemp()
         entorno = {
             **os.environ,
-            "DELTA_DISCO": "/dev/sda",
-            "DELTA_TAMANO_MIB": "476940",
-            "DELTA_HOST": "h",
-            "DELTA_USUARIO": "Mal Usuario",
-            "DELTA_ZONA": "UTC",
-            "DELTA_PASS_USUARIO": "a",
-            "DELTA_PASS_ROOT": "b",
+            "NEX_DISCO": "/dev/sda",
+            "NEX_TAMANO_MIB": "476940",
+            "NEX_HOST": "h",
+            "NEX_USUARIO": "Mal Usuario",
+            "NEX_ZONA": "UTC",
+            "NEX_PASS_USUARIO": "a",
+            "NEX_PASS_ROOT": "b",
         }
         res = subprocess.run([sys.executable, str(SCRIPT), carpeta], env=entorno, capture_output=True, text=True)
         self.assertNotEqual(res.returncode, 0)

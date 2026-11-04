@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
-# Aplica el tema Delta al usuario indicado. Se ejecuta dentro de la instalación
-# (arch-chroot), desde el instalador, o con DELTA_RAIZ para pruebas.
+# Aplica el tema Nex al usuario indicado. Se ejecuta dentro de la instalación
+# (arch-chroot), desde el instalador, o con NEX_RAIZ para pruebas.
 #
 # Uso:  aplicar-tema.sh USUARIO PALETA [RAIZ]
 #   PALETA  oscuro | claro
 #   RAIZ    carpeta raíz del sistema (vacía dentro de arch-chroot)
 #
 # Variables opcionales:
-#   DELTA_TEMA_DIR  carpeta con paletas y plantillas (por defecto: ./tema junto al script)
+#   NEX_TEMA_DIR  carpeta con paletas y plantillas (por defecto: ./tema junto al script)
 
 set -euo pipefail
 
@@ -22,7 +22,7 @@ PALETA="$2"
 RAIZ="${3:-}"
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-TEMA_DIR="${DELTA_TEMA_DIR:-$DIR/tema}"
+TEMA_DIR="${NEX_TEMA_DIR:-$DIR/tema}"
 
 PALETA_FILE="$TEMA_DIR/paletas/$PALETA.env"
 [[ -f "$PALETA_FILE" ]] || error "No existe la paleta '$PALETA'."
@@ -31,33 +31,53 @@ source "$PALETA_FILE"
 
 CASA="$RAIZ/home/$USUARIO"
 CONF="$CASA/.config"
-mkdir -p "$CONF/hypr" "$CONF/kitty"
+mkdir -p "$CONF/hypr" "$CONF/kitty" "$CONF/waybar"
+
+# Colores opcionales: si una paleta no los define, se usan los principales
+: "${PANEL:=$FONDO}"
+: "${ACENTO2:=$ACENTO}"
+: "${ACENTO3:=$ACENTO}"
 
 # Sustituye los marcadores de color de una plantilla y guarda el resultado
 generar() {
-    sed -e "s/__FONDO__/$FONDO/g" -e "s/__ACENTO__/$ACENTO/g" -e "s/__TEXTO__/$TEXTO/g" "$1" > "$2"
+    sed -e "s/__FONDO__/$FONDO/g" -e "s/__PANEL__/$PANEL/g" \
+        -e "s/__ACENTO__/$ACENTO/g" -e "s/__ACENTO2__/$ACENTO2/g" -e "s/__ACENTO3__/$ACENTO3/g" \
+        -e "s/__TEXTO__/$TEXTO/g" "$1" > "$2"
 }
 
-generar "$TEMA_DIR/plantillas/hyprland-delta.conf" "$CONF/hypr/delta.conf"
-generar "$TEMA_DIR/plantillas/kitty-delta.conf" "$CONF/kitty/delta.conf"
+# Guarda una copia de un fichero que ya existía antes de sobrescribirlo
+respaldar() {
+    if [[ -f "$1" ]]; then
+        cp "$1" "$1.bak-nex"
+    fi
+}
+
+generar "$TEMA_DIR/plantillas/hyprland-nex.conf" "$CONF/hypr/nex.conf"
+generar "$TEMA_DIR/plantillas/kitty-nex.conf" "$CONF/kitty/nex.conf"
+
+# Barra Waybar: reloj, CPU y RAM con los colores del tema (se respalda la anterior)
+respaldar "$CONF/waybar/config.jsonc"
+respaldar "$CONF/waybar/style.css"
+generar "$TEMA_DIR/plantillas/waybar-config.jsonc" "$CONF/waybar/config.jsonc"
+generar "$TEMA_DIR/plantillas/waybar-style.css" "$CONF/waybar/style.css"
 
 # Enlaza el tema desde la configuración del usuario si ya existe
-if [[ -f "$CONF/hypr/hyprland.conf" ]] && ! grep -q 'delta.conf' "$CONF/hypr/hyprland.conf"; then
-    echo 'source = ~/.config/hypr/delta.conf' >> "$CONF/hypr/hyprland.conf"
+if [[ -f "$CONF/hypr/hyprland.conf" ]] && ! grep -q 'nex.conf' "$CONF/hypr/hyprland.conf"; then
+    echo 'source = ~/.config/hypr/nex.conf' >> "$CONF/hypr/hyprland.conf"
 fi
-if [[ -f "$CONF/kitty/kitty.conf" ]] && ! grep -q 'delta.conf' "$CONF/kitty/kitty.conf"; then
-    echo 'include delta.conf' >> "$CONF/kitty/kitty.conf"
+if [[ -f "$CONF/kitty/kitty.conf" ]] && ! grep -q 'nex.conf' "$CONF/kitty/kitty.conf"; then
+    echo 'include nex.conf' >> "$CONF/kitty/kitty.conf"
 fi
 
 # Nota de bienvenida en español
-cat > "$CASA/LEEME-DELTA.txt" <<EOF
-Bienvenido a Delta Arch.
+cat > "$CASA/LEEME-NEX.txt" <<EOF
+Bienvenido a Nex Arch.
 
 Tema instalado: $NOMBRE
-Colores del tema: ~/.config/hypr/delta.conf y ~/.config/kitty/delta.conf
+Colores del tema: ~/.config/hypr/nex.conf y ~/.config/kitty/nex.conf
 Para cambiarlos, edita esos archivos y recarga Hyprland con: hyprctl reload
 
-Para instalar más aplicaciones usa: delta-setup
+Para instalar más aplicaciones usa: nex-setup
 EOF
 
 # Si el usuario ya existe en este sistema, dejamos los ficheros a su nombre

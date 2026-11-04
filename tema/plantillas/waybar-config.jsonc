@@ -1,0 +1,37 @@
+// Barra Nex (generada por aplicar-tema.sh). Arriba, con reloj y uso de CPU y RAM.
+{
+    "layer": "top",
+    "position": "top",
+    "height": 34,
+    "spacing": 8,
+    "modules-left": ["hyprland/workspaces"],
+    "modules-center": ["clock"],
+    "modules-right": ["cpu", "memory", "network", "pulseaudio", "tray"],
+
+    "hyprland/workspaces": {
+        "format": "{icon}",
+        "format-icons": { "1": "1", "2": "2", "3": "3", "4": "4", "5": "5", "default": "·" }
+    },
+    "clock": {
+        "format": "{:%H:%M  ·  %A %d %B}",
+        "tooltip-format": "{:%Y-%m-%d}"
+    },
+    "cpu": {
+        "format": "CPU {usage}%",
+        "interval": 3
+    },
+    "memory": {
+        "format": "RAM {percentage}%",
+        "interval": 5
+    },
+    "network": {
+        "format-wifi": "WiFi {signalStrength}%",
+        "format-ethernet": "Cable",
+        "format-disconnected": "Sin red"
+    },
+    "pulseaudio": {
+        "format": "Vol {volume}%",
+        "format-muted": "Silencio"
+    },
+    "tray": { "spacing": 10 }
+}

@@ -19,6 +19,7 @@ if ! command -v whiptail >/dev/null 2>&1; then
 fi
 
 install -Dm755 "$DIR/delta-setup.sh" /usr/local/bin/delta-setup
+install -Dm755 "$DIR/delta-optimizar.sh" /usr/local/bin/delta-optimizar
 install -Dm644 "$DIR/config/apps.conf" /etc/delta-setup/apps.conf
 
-echo "==> Instalado. Ejecuta: delta-setup"
+echo "==> Instalado. Ejecuta: sudo delta-optimizar (ajustes) o delta-setup (apps)"

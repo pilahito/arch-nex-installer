@@ -129,7 +129,9 @@ def brillo(widget, color="#ff2fb3", radio=28):
 
 
 def leer_info_sistema():
-    cpu = "Procesador Linux"
+    # Todo se detecta del sistema donde se ejecuta. Si algo no se puede leer,
+    # se muestra "No detectado" en vez de un valor inventado.
+    cpu = "No detectado"
     try:
         with open("/proc/cpuinfo", "r", encoding="utf-8", errors="ignore") as f:
             for linea in f:
@@ -139,14 +141,14 @@ def leer_info_sistema():
     except OSError:
         pass
 
-    placa = "Placa base estándar / WSL"
+    placa = "No detectada"
     try:
         with open("/sys/devices/virtual/dmi/id/board_name", "r", encoding="utf-8") as f:
             placa = f.read().strip() or placa
     except OSError:
         pass
 
-    ram_total_gb, ram_pct = "8 GB", 35
+    ram_total_gb, ram_pct = "No detectada", 0
     try:
         info = {}
         with open("/proc/meminfo", "r", encoding="utf-8") as f:

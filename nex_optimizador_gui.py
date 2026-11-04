@@ -351,6 +351,10 @@ def _dibujar_icono(p, tipo, m, w, c):
 
 # Fabricantes de GPU: etiqueta y color de la marca (sin logotipos, solo el nombre y su color)
 MARCAS_GPU_NOMBRE = ("INTEL", "NVIDIA", "AMD")  # nombres de tarjeta que usan un icono de marca
+RUTA_MARCAS = RUTA_ASSETS / "marcas"
+MARCAS_SVG = {"intel": "intel.svg", "nvidia": "nvidia.svg", "amd": "amd.svg"}  # logotipos (ver assets/marcas/ORIGEN.md)
+# Versión más clara de cada color de marca, para que se vea bien sobre fondo oscuro
+MARCAS_CLARO = {"intel": "#5cb3ff", "nvidia": "#b8f35a", "amd": "#ff7a7e"}
 MARCAS_GPU = {
     "intel": ("intel", "#0071c5"),
     "nvidia": ("NV", "#76b900"),
@@ -364,7 +368,8 @@ class Icono(QWidget):
     def __init__(self, tipo, color=COLOR_CIAN, tamano=56):
         super().__init__()
         self.tipo = tipo
-        self.color = QColor(color)
+        # Todos los iconos salen un poco más claros para que se vean bien sobre el fondo oscuro
+        self.color = QColor(color).lighter(125)
         self.setFixedSize(tamano, tamano)
 
     def paintEvent(self, evento):
@@ -372,15 +377,24 @@ class Icono(QWidget):
         p.setRenderHint(QPainter.RenderHint.Antialiasing)
         tamano = self.width()
         m, w = tamano * 0.14, tamano * 0.72
-        if self.tipo in MARCAS_GPU:
-            etiqueta, color_marca = MARCAS_GPU[self.tipo]
-            # Chip con el color del fabricante y su nombre dentro
-            p.setPen(Qt.PenStyle.NoPen)
-            p.setBrush(QColor(color_marca))
-            p.drawRoundedRect(QRectF(m, m, w, w), w * 0.18, w * 0.18)
-            p.setPen(QColor("#ffffff"))
-            p.setFont(QFont("DejaVu Sans", max(6, int(w * 0.24)), QFont.Weight.Bold))
-            p.drawText(QRectF(m, m, w, w), Qt.AlignmentFlag.AlignCenter, etiqueta)
+        if self.tipo in MARCAS_SVG:
+            # Logotipo oficial del fabricante, dibujado como SVG y centrado
+            from PyQt6.QtSvg import QSvgRenderer
+            render = QSvgRenderer(str(RUTA_MARCAS / MARCAS_SVG[self.tipo]))
+            if render.isValid():
+                tam = render.defaultSize()
+                escala = min(w / tam.width(), w / tam.height())
+                ancho_f, alto_f = tam.width() * escala, tam.height() * escala
+                destino = QRectF(m + (w - ancho_f) / 2, m + (w - alto_f) / 2, ancho_f, alto_f)
+                # Se pinta el logo sobre una capa y se tiñe con una versión más clara del color
+                capa = QPixmap(tamano, tamano)
+                capa.fill(Qt.GlobalColor.transparent)
+                q = QPainter(capa)
+                render.render(q, destino)
+                q.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceIn)
+                q.fillRect(capa.rect(), QColor(MARCAS_CLARO[self.tipo]))
+                q.end()
+                p.drawPixmap(0, 0, capa)
         else:
             pen = QPen(self.color, max(2, tamano // 16))
             p.setPen(pen)

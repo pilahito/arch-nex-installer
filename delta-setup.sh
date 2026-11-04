@@ -125,27 +125,71 @@ ejecutar() {
     fi
 }
 
+# Instala yay (ayudante de AUR) compilándolo desde el AUR si no está presente
+asegurar_yay() {
+    command -v yay >/dev/null 2>&1 && return 0
+    if (( EUID == 0 && SIMULAR == 0 )); then
+        error "Instalar yay necesita tu usuario normal, no root."
+    fi
+
+    echo "==> Instalando yay desde el AUR"
+    if (( SIMULAR )); then
+        echo "[simulación] git clone https://aur.archlinux.org/yay.git && makepkg -si"
+        return 0
+    fi
+
+    local tmp
+    tmp="$(mktemp -d)"
+    git clone https://aur.archlinux.org/yay.git "$tmp/yay"
+    (cd "$tmp/yay" && makepkg -si --noconfirm)
+    rm -rf "$tmp"
+}
+
+# Instala HyDE (dotfiles de Hyprland) con su script oficial.
+# Es interactivo y tarda 20-30 min. Solo tiene sentido en un Arch real con escritorio.
+instalar_hyde() {
+    local destino="$HOME/HyDE"
+
+    if (( EUID == 0 && SIMULAR == 0 )); then
+        error "HyDE no se instala como root. Ejecuta el script como tu usuario normal."
+    fi
+    echo "AVISO: HyDE necesita un Arch real con sesión gráfica. En WSL no se verá el escritorio." >&2
+
+    ejecutar sudo pacman -S --needed --noconfirm git base-devel wget curl
+    asegurar_yay
+
+    if [[ ! -d "$destino/.git" ]]; then
+        ejecutar git clone --depth 1 https://github.com/HyDE-Project/HyDE "$destino"
+    fi
+
+    if (( SIMULAR )); then
+        echo "[simulación] (cd $destino/Scripts && ./install.sh)"
+    else
+        (cd "$destino/Scripts" && ./install.sh)
+    fi
+}
+
 instalar() {
     local -a seleccion=("$@")
     local -a repos=() aur=()
-    local cat pkg nombre origen estado existe
+    local cat pkg nombre origen estado existe quiere_hyde=0
 
     for elegido in "${seleccion[@]}"; do
         existe=0
         while IFS='|' read -r cat pkg nombre origen estado; do
             if [[ "$pkg" == "$elegido" ]]; then
                 existe=1
-                if [[ "$origen" == "aur" ]]; then
-                    aur+=("$pkg")
-                else
-                    repos+=("$pkg")
-                fi
+                case "$origen" in
+                    aur)  aur+=("$pkg") ;;
+                    hyde) quiere_hyde=1 ;;
+                    *)    repos+=("$pkg") ;;
+                esac
             fi
         done < <(leer_config)
         (( existe )) || echo "AVISO: '$elegido' no está en $CONFIG, se omite." >&2
     done
 
-    if (( ${#repos[@]} == 0 && ${#aur[@]} == 0 )); then
+    if (( ${#repos[@]} == 0 && ${#aur[@]} == 0 && quiere_hyde == 0 )); then
         echo "No hay nada que instalar."
         return 0
     fi
@@ -157,12 +201,16 @@ instalar() {
     fi
 
     if (( ${#aur[@]} > 0 )); then
-        if command -v yay >/dev/null 2>&1; then
-            (( EUID == 0 )) && error "yay no se puede ejecutar como root. Usa tu usuario normal."
-            ejecutar yay -S --needed --noconfirm "${aur[@]}"
-        else
-            echo "AVISO: yay no está instalado; se omiten los paquetes AUR: ${aur[*]}" >&2
+        if (( EUID == 0 && SIMULAR == 0 )); then
+            error "Los paquetes AUR se instalan con tu usuario normal, no como root."
         fi
+        asegurar_yay
+        ejecutar yay -S --needed --noconfirm "${aur[@]}"
+    fi
+
+    # HyDE al final: es lo más largo e interactivo
+    if (( quiere_hyde )); then
+        instalar_hyde
     fi
 
     echo "Listo."

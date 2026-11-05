@@ -61,7 +61,7 @@ cp -r "$DIR/post-instalacion" "$DIR/tema" "$INSTALADOR/"
 install -m755 "$DIR/iso/airootfs/root/.automated_script.sh" "$PERFIL/airootfs/root/.automated_script.sh"
 
 echo "==> Nex Setup (optimizador, menú de apps y asistente gráfico) dentro de la ISO"
-SETUP="${NEX_SETUP_DIR:-$DIR/../arch-nex-setup}"
+SETUP="${NEX_SETUP_DIR:-$DIR/setup}"
 [[ -f "$SETUP/nex_optimizador_gui.py" ]] || error "No encuentro Nex Setup en $SETUP (define NEX_SETUP_DIR)"
 mkdir -p "$INSTALADOR/nex-setup"
 tar -C "$SETUP" --exclude=./.git --exclude=./tests --exclude=./docs --exclude=./__pycache__ -cf - . \

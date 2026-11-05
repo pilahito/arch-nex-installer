@@ -1,28 +1,48 @@
-# NEX Installer
+# NEX OS
 
-Asistente gráfico para preparar instalaciones de Linux. **Arch Linux es la distribución principal**; Ubuntu y Debian aparecen como alternativas.
+Repositorio consolidado de NEX OS. Integra el instalador Arch, el asistente Nex Setup y el primer módulo de diagnóstico de NEX Rescue Center.
 
-## Estado
+## Estado actual
 
-La interfaz gráfica está en desarrollo. Permite recorrer las pantallas de selección y mostrar la configuración inicial, pero todavía no instala ninguna distribución. El botón final permanece bloqueado hasta que los instaladores y las protecciones del disco estén implementados y verificados.
+- La ISO de prueba inicia en QEMU con UEFI, pero la última prueba gráfica se queda en negro después del menú de arranque. La interfaz del instalador sigue siendo una vista previa y no ejecuta una instalación.
+- El disco de prueba es un archivo qcow2 virtual de 30 GB; los discos físicos del PC no se conectan al emulador.
+- Nex Rescue Center solo genera inventarios de almacenamiento de solo lectura.
+- Las pruebas Python y shell de ambos proyectos se ejecutan en Linux/Arch.
 
-La ISO de pruebas arranca en una máquina virtual QEMU con un disco virtual de 30 GB. No expone los discos físicos del equipo. No se debe usar todavía para instalar un sistema.
+## Componentes
 
-## Proyecto
+- `generar_config.py`, `nex_instalador.py`, `nex_installer_gui.py`: instalador y sus flujos de configuración.
+- `iso/`: perfil Archiso y arranque del entorno live.
+- `post-instalacion/`, `tema/`: personalización de NEX.
+- `setup/`: asistente de escritorio, optimizador, menú de aplicaciones, fondos, logotipos y pruebas.
+- `rescue/`: inventario de discos en solo lectura y arquitectura de Rescue Center.
+- `docs/UNIFICACION.md`: procedencia, estructura y estado de la migración.
+- `THIRD_PARTY_NOTICES.md`: situación de licencias y atribuciones.
 
-- `nex_installer_gui.py`: interfaz gráfica PyQt6.
-- `nex_instalador.py`: instalador anterior basado en terminal para Arch.
-- `generar_config.py`: generación de configuración para `archinstall`.
-- `iso/`: perfil de `archiso`, paquetes y arranque del asistente.
-- `post-instalacion/` y `tema/`: personalización de NEX.
+## Pruebas
 
-## Crear una ISO de prueba
+```sh
+python -m compileall -q generar_config.py nex_instalador.py nex_installer_gui.py setup/nex_optimizador_gui.py setup/nex_plan.py rescue
+python -m unittest discover -s tests -v
+python -m unittest discover -s setup/tests -v
+python -m unittest discover -s rescue/tests -v
+bash tests/test_aplicar_tema.sh
+bash setup/tests/test_optimizar.sh
+```
 
-El perfil de construcción está en `iso/build-iso.sh`. Se ejecuta en un entorno Arch Linux con `archiso` y necesita acceso de red para obtener los paquetes. El resultado es una ISO live para pruebas; no equivale a un instalador terminado.
+GitHub Actions ejecuta los mismos controles en Linux.
 
-## Próximos pasos
+## Construir ISO
 
-1. Completar las pantallas gráficas y su adaptación a distintos tamaños.
-2. Conectar el flujo de Arch con `archinstall` y probarlo solo en una VM.
-3. Incorporar Ubuntu y Debian con instaladores separados.
-4. Mantener la instalación bloqueada hasta detectar y confirmar el disco virtual de destino.
+En Arch Linux con `archiso`:
+
+```sh
+sudo pacman -S archiso
+sudo bash iso/build-iso.sh
+```
+
+El script usa `setup/` del propio repositorio. Puedes cambiarlo con `NEX_SETUP_DIR`. Define `BUILD_DIR` y `SALIDA` para elegir carpetas de trabajo y salida. La ISO es experimental y solo debe probarse con una máquina virtual y un disco virtual descartable.
+
+## Seguridad
+
+No se debe instalar ni reparar un sistema en un equipo real con esta ISO. El flujo de instalación todavía no está implementado y las reparaciones del Rescue Center permanecen deshabilitadas.

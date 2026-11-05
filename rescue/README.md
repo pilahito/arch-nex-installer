@@ -1,19 +1,26 @@
 # NEX Rescue Center
 
-Centro de diagnóstico y recuperación para la futura ISO NEX Live.
+Centro de diagnóstico para la futura ISO NEX Live. La primera función disponible es un inventario de dispositivos de bloque que solo consulta `lsblk`.
 
-## Principios
-- Exploración del hardware y almacenamiento en modo de solo lectura por defecto.
-- Distinguir discos físicos de letras de unidad de Windows.
-- Mostrar el plan y las rutas afectadas antes de cualquier reparación.
-- Requerir confirmación explícita para operaciones de escritura.
-- Recuperar archivos a un destino distinto y con espacio suficiente.
-- Registrar resultados sin exponer contraseñas ni datos personales.
+## Uso
 
-## Objetivos
-- Diagnóstico CPU, memoria, GPU, red y SMART/NVMe.
-- Recuperación guiada de GRUB, systemd-boot, kernel e initramfs.
-- Comprobación de fstab, UUID y montajes.
-- Informes exportables y pruebas en máquina virtual.
+En Arch Linux:
 
-No ejecutar reparaciones en un equipo real hasta que cada procedimiento esté implementado y probado.
+```sh
+python3 rescue/nex_rescue.py
+python3 rescue/nex_rescue.py --output informe-nex.json
+```
+
+Sin `--output`, el informe JSON se escribe en la salida estándar. La opción de archivo crea un archivo nuevo y falla si ya existe, para no sobrescribir informes.
+
+## Garantías de la primera versión
+
+- No requiere privilegios de administrador.
+- No ejecuta montaje, desmontaje, reparación ni comandos de particionado.
+- Marca el informe como solo lectura y declara las operaciones de escritura deshabilitadas.
+- Solo muestra tipo, tamaño, modelo, sistema de archivos, estado de solo lectura, si es extraíble y puntos de montaje.
+- No recopila números de serie.
+
+## Arquitectura
+
+La guía de separación entre interfaz, casos de uso, proveedores de solo lectura y futuras acciones está en [ARCHITECTURE.md](ARCHITECTURE.md). Las reparaciones no están implementadas ni disponibles en esta versión.

@@ -1,69 +1,28 @@
-# Nex Arch: instalador guiado en español
+# NEX Installer
 
-Instalador de Arch Linux con el tema Nex, pensado para usuarios que no quieren configurar todo a mano. Usa `archinstall`, el instalador oficial de Arch, y añade:
+Asistente gráfico para preparar instalaciones de Linux. **Arch Linux es la distribución principal**; Ubuntu y Debian aparecen como alternativas.
 
-- Menús en español con el estilo Nex.
-- Elección de disco con confirmación escribiendo su nombre, para no borrar el disco equivocado.
-- Particiones automáticas y fáciles: EFI de 1 GiB y raíz ext4 con el resto del disco. Swap en zram.
-- Idioma español (es_ES), teclado español y zona horaria elegible.
-- Escritorio Hyprland con SDDM, PipeWire y NetworkManager.
-- Tema Nex aplicado al usuario, en dos paletas: `oscuro` y `claro`.
+## Estado
 
-## Qué borra
+La interfaz gráfica está en desarrollo. Permite recorrer las pantallas de selección y mostrar la configuración inicial, pero todavía no instala ninguna distribución. El botón final permanece bloqueado hasta que los instaladores y las protecciones del disco estén implementados y verificados.
 
-**Borra por completo el disco que elijas.** El instalador no conserva particiones ni sistemas que ya tenga (por ejemplo, Windows). Úsalo solo en un disco que puedas vaciar.
+La ISO de pruebas arranca en una máquina virtual QEMU con un disco virtual de 30 GB. No expone los discos físicos del equipo. No se debe usar todavía para instalar un sistema.
 
-## Requisitos
+## Proyecto
 
-- ISO oficial de Arch Linux, arrancada en modo UEFI.
-- Conexión a internet.
-- Disco de al menos 9 GiB.
+- `nex_installer_gui.py`: interfaz gráfica PyQt6.
+- `nex_instalador.py`: instalador anterior basado en terminal para Arch.
+- `generar_config.py`: generación de configuración para `archinstall`.
+- `iso/`: perfil de `archiso`, paquetes y arranque del asistente.
+- `post-instalacion/` y `tema/`: personalización de NEX.
 
-## Uso
+## Crear una ISO de prueba
 
-Desde el ISO de Arch, como root:
+El perfil de construcción está en `iso/build-iso.sh`. Se ejecuta en un entorno Arch Linux con `archiso` y necesita acceso de red para obtener los paquetes. El resultado es una ISO live para pruebas; no equivale a un instalador terminado.
 
-```bash
-bash instalar-nex.sh
-```
+## Próximos pasos
 
-Se abre una interfaz de pantalla completa dentro de la terminal, con los pasos: bienvenida con datos del equipo, disco (el del ISO no aparece), confirmación del borrado escribiendo el nombre del disco, equipo, usuario, zona horaria, contraseñas, tema, resumen y barra de progreso.
-
-Para recorrer las pantallas sin tocar ningún disco:
-
-```bash
-python3 nex_instalador.py --simular
-```
-
-## Estructura
-
-```
-instalar-nex.sh          lanza el instalador (ejecuta nex_instalador.py)
-nex_instalador.py        interfaz de pantalla completa (curses) y flujo de instalación
-generar_config.py        genera config.json y creds.json para archinstall
-post-instalacion/
-  aplicar-tema.sh          aplica el tema al usuario (dentro de la instalación)
-tema/
-  paletas/oscuro.env       colores Nex oscuro
-  paletas/claro.env        colores Nex claro
-  plantillas/              configuración de Hyprland y kitty con marcadores de color
-tests/
-  test_generar_config.py   pruebas del generador (python3 -m unittest discover -s tests)
-  test_nex_instalador.py   pruebas de la interfaz, incluido un recorrido en simulación
-  test_aplicar_tema.sh     pruebas del tema sobre una raíz falsa
-```
-
-## Pruebas
-
-```bash
-python3 -m unittest discover -s tests -v
-bash tests/test_aplicar_tema.sh
-```
-
-Estas pruebas no tocan discos. **La instalación completa no se ha probado todavía**: hay que hacerla en una máquina virtual o en un equipo de pruebas, nunca en el equipo real sin copia de seguridad.
-
-## Pendiente
-
-- Probar la instalación completa en una máquina virtual UEFI.
-- Integrar el instalador dentro de la ISO (perfil de `archiso`).
-- Añadir más temas o paletas.
+1. Completar las pantallas gráficas y su adaptación a distintos tamaños.
+2. Conectar el flujo de Arch con `archinstall` y probarlo solo en una VM.
+3. Incorporar Ubuntu y Debian con instaladores separados.
+4. Mantener la instalación bloqueada hasta detectar y confirmar el disco virtual de destino.

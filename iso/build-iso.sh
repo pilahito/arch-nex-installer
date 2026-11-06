@@ -55,11 +55,14 @@ mkdir -p "$INSTALADOR"
 install -m755 "$DIR/instalar-nex.sh" "$INSTALADOR/instalar-nex.sh"
 install -m755 "$DIR/generar_config.py" "$INSTALADOR/generar_config.py"
 install -m755 "$DIR/nex_instalador.py" "$INSTALADOR/nex_instalador.py"
+install -m755 "$DIR/nex_installer_gui.py" "$INSTALADOR/nex_installer_gui.py"
+install -m755 "$DIR/nex_installer_dashboard.py" "$INSTALADOR/nex_installer_dashboard.py"
+install -m755 "$DIR/iso/nex-start-gui.sh" "$INSTALADOR/nex-start-gui.sh"
 cp -r "$DIR/post-instalacion" "$DIR/tema" "$INSTALADOR/"
 install -m755 "$DIR/iso/airootfs/root/.automated_script.sh" "$PERFIL/airootfs/root/.automated_script.sh"
 
 echo "==> Nex Setup (optimizador, menú de apps y asistente gráfico) dentro de la ISO"
-SETUP="${NEX_SETUP_DIR:-$DIR/../arch-nex-setup}"
+SETUP="${NEX_SETUP_DIR:-$DIR/setup}"
 [[ -f "$SETUP/nex_optimizador_gui.py" ]] || error "No encuentro Nex Setup en $SETUP (define NEX_SETUP_DIR)"
 mkdir -p "$INSTALADOR/nex-setup"
 tar -C "$SETUP" --exclude=./.git --exclude=./tests --exclude=./docs --exclude=./__pycache__ -cf - . \
@@ -78,6 +81,9 @@ sed -i '/^file_permissions=(/a\
   ["/root/nex-installer/instalar-nex.sh"]="0:0:755"\
   ["/root/nex-installer/generar_config.py"]="0:0:755"\
   ["/root/nex-installer/nex_instalador.py"]="0:0:755"\
+  ["/root/nex-installer/nex_installer_gui.py"]="0:0:755"\
+  ["/root/nex-installer/nex_installer_dashboard.py"]="0:0:755"\
+  ["/root/nex-installer/nex-start-gui.sh"]="0:0:755"\
   ["/root/nex-installer/post-instalacion/aplicar-tema.sh"]="0:0:755"\
   ["/root/nex-installer/nex-setup/nex-setup.sh"]="0:0:755"\
   ["/root/nex-installer/nex-setup/nex-optimizar.sh"]="0:0:755"\

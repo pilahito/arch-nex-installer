@@ -1,0 +1,26 @@
+name: Pruebas NEX OS
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Sintaxis Python
+        run: python -m compileall -q generar_config.py nex_instalador.py nex_installer_gui.py nex_installer_dashboard.py setup/nex_optimizador_gui.py setup/nex_plan.py rescue
+      - name: Pruebas del instalador
+        run: python -m unittest discover -s tests -v
+      - name: Pruebas de Setup
+        run: python -m unittest discover -s setup/tests -v
+      - name: Pruebas de Rescue Center
+        run: python -m unittest discover -s rescue/tests -v
+      - name: Pruebas de scripts
+        run: |
+          bash tests/test_aplicar_tema.sh
+          bash setup/tests/test_optimizar.sh

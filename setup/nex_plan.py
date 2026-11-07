@@ -13,6 +13,7 @@ La contraseña de sudo se pide una sola vez y se usa solo para los pasos de root
 """
 
 import getpass
+import json
 import os
 import shutil
 import subprocess
@@ -68,12 +69,20 @@ PAQUETES_AUR = {
     "Octopi": "octopi",
 }
 
-# Temas de la interfaz -> paletas que existen en el instalador (tema/paletas/*.env)
-PALETAS_TEMA = {
-    "NEX NEÓN": "neon",
-    "OSCURO": "oscuro",
-    "CLARO": "claro",
-}
+def ruta_temas() -> Optional[Path]:
+    """Encuentra el catálogo tanto en el monorrepositorio como ya instalado."""
+    for ruta in (DIR.parent / "tema", Path("/usr/local/share/nex/tema"),
+                 Path("/root/nex-installer/tema")):
+        if (ruta / "catalogo.json").is_file():
+            return ruta
+    return None
+
+
+RUTA_TEMAS = ruta_temas()
+CATALOGO_TEMAS = (json.loads((RUTA_TEMAS / "catalogo.json").read_text(encoding="utf-8"))
+                  if RUTA_TEMAS else [])
+PALETAS_TEMA = ({entrada["nombre"]: entrada["id"] for entrada in CATALOGO_TEMAS}
+                 if CATALOGO_TEMAS else {"NEX NEÓN": "neon", "OSCURO": "oscuro", "CLARO": "claro"})
 
 # Steam está en el repositorio multilib: hay que tenerlo activado en pacman.conf
 PAQUETE_STEAM = "steam"
@@ -252,7 +261,11 @@ def construir_plan(estado: dict) -> Tuple[List[Paso], List[str]]:
 
 def _pasos_fondo(paleta: str) -> List[Paso]:
     """Copia el fondo del tema a la carpeta del usuario y lo fija en hyprpaper."""
-    origen = DIR / "assets" / "fondos" / f"{paleta}.png"
+    fondo_nex = RUTA_TEMAS / "fondos" / f"{paleta}.png" if RUTA_TEMAS else None
+    origen = (fondo_nex if fondo_nex and fondo_nex.is_file()
+              else DIR / "assets" / "fondos" / f"{paleta}.png")
+    if not origen.is_file():
+        return []
     carpeta = Path.home() / ".local" / "share" / "nex" / "fondos"
     destino = carpeta / f"{paleta}.png"
     return [
@@ -266,6 +279,8 @@ def _pasos_fondo(paleta: str) -> List[Paso]:
 
 def buscar_script_tema() -> Optional[Path]:
     for candidato in (Path("/usr/local/share/nex/aplicar-tema.sh"),
+                      DIR.parent / "post-instalacion" / "aplicar-tema.sh",
+                      Path("/root/nex-installer/post-instalacion/aplicar-tema.sh"),
                       DIR.parent / "arch-nex-installer" / "post-instalacion" / "aplicar-tema.sh",
                       DIR.parent / "arch-delta-installer" / "post-instalacion" / "aplicar-tema.sh"):
         if candidato.exists():

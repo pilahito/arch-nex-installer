@@ -27,7 +27,7 @@ from PyQt6.QtWidgets import (
     QApplication, QCheckBox, QComboBox, QDialog, QFrame, QGraphicsDropShadowEffect,
     QGraphicsOpacityEffect, QGridLayout, QHBoxLayout, QInputDialog, QLabel, QLineEdit,
     QAbstractItemView, QMainWindow, QMessageBox, QProgressBar, QPushButton, QStackedWidget,
-    QTableWidget, QTableWidgetItem, QTextEdit, QVBoxLayout, QWidget,
+    QScrollArea, QTableWidget, QTableWidgetItem, QTextEdit, QVBoxLayout, QWidget,
 )
 
 DIR = Path(__file__).resolve().parent
@@ -36,11 +36,14 @@ sys.path.insert(0, str(DIR))
 import nex_plan  # noqa: E402
 
 # Imagen de fondo de cada tema (generadas con tools/generar_imagenes.py)
-ARCHIVO_FONDO = {"NEX NEÓN": "neon", "OSCURO": "oscuro", "CLARO": "claro", "HYDE": "hyde"}
+ARCHIVO_FONDO = nex_plan.PALETAS_TEMA
 
 
 def fondo_de(tema):
-    return QPixmap(str(RUTA_ASSETS / "fondos" / f"{ARCHIVO_FONDO.get(tema, 'neon')}.png"))
+    archivo = f"{ARCHIVO_FONDO.get(tema, 'neon')}.png"
+    fondo_nex = nex_plan.RUTA_TEMAS / "fondos" / archivo if nex_plan.RUTA_TEMAS else None
+    ruta = fondo_nex if fondo_nex and fondo_nex.is_file() else RUTA_ASSETS / "fondos" / archivo
+    return QPixmap(str(ruta))
 
 # Paleta neón, la misma de la paleta "neon" de Nex
 COLORES = {
@@ -461,12 +464,19 @@ def icono_ventana(tipo=None, color=COLOR_CIAN, tamano=64):
 
 
 # Colores de cada tema para las miniaturas: (fondo, acento, secundario)
-PALETAS_VISTA = {
-    "NEX NEÓN": ("#120a24", "#2ee6ff", "#ff2fb3"),
-    "OSCURO": ("#0b1020", "#00d4ff", "#7b5cff"),
-    "CLARO": ("#f5f7fa", "#0077b6", "#5b3fd6"),
-    "HYDE": ("#0f0f14", "#9d9dff", "#5f5fb0"),
-}
+def cargar_paletas_vista():
+    paletas = {}
+    for nombre, identificador in ARCHIVO_FONDO.items():
+        archivo = nex_plan.RUTA_TEMAS / "paletas" / f"{identificador}.env" if nex_plan.RUTA_TEMAS else None
+        if not archivo or not archivo.is_file():
+            continue
+        valores = dict(linea.split("=", 1) for linea in archivo.read_text(encoding="utf-8").splitlines()
+                       if "=" in linea and not linea.startswith("#"))
+        paletas[nombre] = tuple("#" + valores[clave] for clave in ("FONDO", "ACENTO", "ACENTO2"))
+    return paletas
+
+
+PALETAS_VISTA = cargar_paletas_vista()
 
 
 class VistaTema(QFrame):
@@ -1006,14 +1016,19 @@ class NexOptimizerGUI(QMainWindow):
         self.preview.setAlignment(Qt.AlignmentFlag.AlignCenter)
         dl.addWidget(self.preview)
         dl.addWidget(self.vista_tema, 1)
-        rejilla_temas = QGridLayout()
+        contenedor_temas = QWidget()
+        rejilla_temas = QGridLayout(contenedor_temas)
         self.vistas_tema = []
-        for i, nombre in enumerate(["NEX NEÓN", "OSCURO", "CLARO", "HYDE"]):
+        for i, nombre in enumerate(ARCHIVO_FONDO):
             vista = VistaTema(nombre)
             vista.pulsada.connect(self.fijar_tema)
             self.vistas_tema.append(vista)
-            rejilla_temas.addWidget(vista, i // 2, i % 2)
-        dl.addLayout(rejilla_temas)
+            rejilla_temas.addWidget(vista, i // 3, i % 3)
+        lista_temas = QScrollArea()
+        lista_temas.setWidgetResizable(True)
+        lista_temas.setMaximumHeight(300)
+        lista_temas.setWidget(contenedor_temas)
+        dl.addWidget(lista_temas)
         self.fijar_tema(self.estado["tema"], animar=False)
 
         cuerpo.addWidget(izquierda, 1)
@@ -1039,7 +1054,7 @@ class NexOptimizerGUI(QMainWindow):
         if not imagen.isNull():
             self.preview.setPixmap(imagen.scaled(320, 180, Qt.AspectRatioMode.KeepAspectRatioByExpanding,
                                                  Qt.TransformationMode.SmoothTransformation))
-        brillo(self.vista_tema, "#2ee6ff" if nombre == "NEX NEÓN" else "#9d5cff", 26)
+        brillo(self.vista_tema, PALETAS_VISTA.get(nombre, ("", "#9d5cff", ""))[1], 26)
         for vista in self.vistas_tema:
             vista.set_seleccionada(vista.nombre == nombre)
 

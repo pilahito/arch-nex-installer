@@ -85,11 +85,19 @@ class PlanTest(unittest.TestCase):
         self.assertIn("oscuro.png", textos)
         self.assertTrue(any(p.destino.endswith("hyprpaper.conf") for p in pasos))
 
-    def test_tema_sin_paleta_avisa_y_usa_neon(self):
+    def test_hyde_tiene_paleta_propia(self):
         pasos, avisos = np.construir_plan(estado_base(tema="HYDE"))
         tema = [p for p in pasos if p.args[:1] == ["__TEMA__"]]
-        self.assertEqual(tema[0].args[1], "neon")
-        self.assertTrue(any("HYDE" in a for a in avisos))
+        self.assertEqual(tema[0].args[1], "hyde")
+        self.assertFalse(any("HYDE" in a for a in avisos))
+
+    def test_todos_los_disenos_tienen_paleta_y_fondo(self):
+        for nombre, paleta in np.PALETAS_TEMA.items():
+            with self.subTest(nombre=nombre):
+                pasos, avisos = np.construir_plan(estado_base(tema=nombre))
+                self.assertFalse(any(nombre in aviso for aviso in avisos))
+                self.assertTrue(any(p.args == ["__TEMA__", paleta] for p in pasos))
+                self.assertTrue(any(paleta + ".png" in " ".join(p.args) for p in pasos))
 
     def test_limpieza_segun_casillas(self):
         pasos, _ = np.construir_plan(estado_base(debloat=["Limpiar caché antigua de pacman (paccache -rk1)"]))

@@ -376,11 +376,10 @@ def pantalla_equipo(scr):
 
 
 def pantalla_tema(scr):
-    return menu(scr, "Tema", "Elige el tema de escritorio. Lo puedes cambiar después en ~/.config.", [
-        ("neon", "Nex neón (morado, magenta y cian)"),
-        ("oscuro", "Nex oscuro (azul marino y cian)"),
-        ("claro", "Nex claro (fondo blanco y azul)"),
-    ])
+    catalogo = json.loads((TEMA_DIR / "catalogo.json").read_text(encoding="utf-8"))
+    opciones = [(tema["id"], f'{tema["nombre"]} · {tema["descripcion"]}')
+                for tema in catalogo]
+    return menu(scr, "Tema", "Elige un diseño de escritorio. Podrás cambiarlo después.", opciones)
 
 
 def pantalla_resumen(scr, disco, equipo, tema):
@@ -539,6 +538,7 @@ def instalar(scr, disco, equipo, tema):
             "nex-setup": "/usr/local/share/nex-setup/nex-setup.sh",
             "nex-optimizar": "/usr/local/share/nex-setup/nex-optimizar.sh",
             "nex-optimizar-gui": "/usr/local/share/nex-setup/nex_optimizador_gui.py",
+            "nex-theme-store": "/usr/local/share/nex/nex_theme_store_gui.py",
         }
         if SIMULAR:
             registro.append(f"[simulación] copiar Nex Setup a {destino} y crear {', '.join(comandos)}")
@@ -546,6 +546,9 @@ def instalar(scr, disco, equipo, tema):
         if not origen.is_dir():
             raise RuntimeError(f"No encuentro Nex Setup en {origen}")
         shutil.copytree(origen, destino, ignore=EXCLUIR_SETUP, dirs_exist_ok=True)
+        tienda_destino = Path(MONTAJE) / "usr/local/share/nex"
+        for archivo in ("nex_theme_store_gui.py", "theme_store.py"):
+            shutil.copy2(DIR / archivo, tienda_destino / archivo)
         for nombre, ruta in comandos.items():
             ejecutable = Path(MONTAJE) / "usr/local/bin" / nombre
             ejecutable.parent.mkdir(parents=True, exist_ok=True)

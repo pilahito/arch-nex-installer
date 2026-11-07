@@ -3,7 +3,7 @@
 # (arch-chroot), desde el instalador, o con NEX_RAIZ para pruebas.
 #
 # Uso:  aplicar-tema.sh USUARIO PALETA [RAIZ]
-#   PALETA  oscuro | claro
+#   PALETA  identificador de tema/paletas/*.env
 #   RAIZ    carpeta raíz del sistema (vacía dentro de arch-chroot)
 #
 # Variables opcionales:
@@ -20,6 +20,7 @@ error() {
 USUARIO="$1"
 PALETA="$2"
 RAIZ="${3:-}"
+[[ "$PALETA" =~ ^[a-z0-9-]+$ ]] || error "Identificador de paleta no válido."
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TEMA_DIR="${NEX_TEMA_DIR:-$DIR/tema}"
@@ -61,6 +62,19 @@ respaldar "$CONF/waybar/style.css"
 generar "$TEMA_DIR/plantillas/waybar-config.jsonc" "$CONF/waybar/config.jsonc"
 generar "$TEMA_DIR/plantillas/waybar-style.css" "$CONF/waybar/style.css"
 
+# Fondo local y reproducible: cada paleta tiene un PNG propio en el repositorio.
+FONDO_ORIGEN="$TEMA_DIR/fondos/$PALETA.png"
+if [[ -f "$FONDO_ORIGEN" ]]; then
+    FONDO_DESTINO="$CASA/.local/share/nex/fondos/$PALETA.png"
+    mkdir -p "$(dirname "$FONDO_DESTINO")"
+    cp "$FONDO_ORIGEN" "$FONDO_DESTINO"
+    respaldar "$CONF/hypr/hyprpaper.conf"
+    printf 'preload = %s\nwallpaper = ,%s\n' \
+        "/home/$USUARIO/.local/share/nex/fondos/$PALETA.png" \
+        "/home/$USUARIO/.local/share/nex/fondos/$PALETA.png" \
+        > "$CONF/hypr/hyprpaper.conf"
+fi
+
 # Enlaza el tema desde la configuración del usuario si ya existe
 if [[ -f "$CONF/hypr/hyprland.conf" ]] && ! grep -q 'nex.conf' "$CONF/hypr/hyprland.conf"; then
     echo 'source = ~/.config/hypr/nex.conf' >> "$CONF/hypr/hyprland.conf"
@@ -76,13 +90,18 @@ Bienvenido a Nex Arch.
 Tema instalado: $NOMBRE
 Colores del tema: ~/.config/hypr/nex.conf y ~/.config/kitty/nex.conf
 Para cambiarlos, edita esos archivos y recarga Hyprland con: hyprctl reload
+Otros diseños disponibles: $(find "$TEMA_DIR/paletas" -maxdepth 1 -name '*.env' -printf '%f ' | sed 's/\.env//g')
 
 Para instalar más aplicaciones usa: nex-setup
 EOF
 
 # Si el usuario ya existe en este sistema, dejamos los ficheros a su nombre
-if id "$USUARIO" >/dev/null 2>&1; then
-    chown -R "$USUARIO:$USUARIO" "$CASA"
+if (( EUID == 0 )) && id "$USUARIO" >/dev/null 2>&1; then
+    chown "$USUARIO:$USUARIO" "$CONF/hypr/nex.conf" "$CONF/kitty/nex.conf" \
+        "$CONF/waybar/config.jsonc" "$CONF/waybar/style.css" "$CASA/LEEME-NEX.txt"
+    if [[ -f "${FONDO_DESTINO:-}" ]]; then
+        chown "$USUARIO:$USUARIO" "$FONDO_DESTINO" "$CONF/hypr/hyprpaper.conf"
+    fi
 fi
 
 echo "Tema '$NOMBRE' aplicado a $USUARIO."

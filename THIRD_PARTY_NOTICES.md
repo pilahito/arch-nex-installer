@@ -12,3 +12,7 @@ Se conserva la información de origen que acompañaba a los recursos:
 - [Marcas de fabricantes de GPU](setup/assets/marcas/ORIGEN.md): fuentes declaradas y titularidad de las marcas.
 
 Los nombres y logotipos identifican productos y fabricantes; sus marcas pertenecen a sus respectivos titulares. Fondos y logotipo NEX se describen como recursos generados por el proyecto en el README de Setup.
+
+## Inspiración visual externa
+
+El diseño `Puntos` se inspira en la estética de [Glyph Rice](https://github.com/Nebelung-cloud/glyph-rice), mostrada en [este video](https://www.youtube.com/watch?v=bmGpayDMRSM). Glyph Rice se distribuye bajo GPL-3.0; NEX no incluye su código ni sus recursos. Los fondos y paletas de NEX se han creado para este proyecto. La tienda enlaza al repositorio público para descarga y revisión voluntarias.

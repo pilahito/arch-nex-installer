@@ -57,6 +57,8 @@ install -m755 "$DIR/generar_config.py" "$INSTALADOR/generar_config.py"
 install -m755 "$DIR/nex_instalador.py" "$INSTALADOR/nex_instalador.py"
 install -m755 "$DIR/nex_installer_gui.py" "$INSTALADOR/nex_installer_gui.py"
 install -m755 "$DIR/nex_installer_dashboard.py" "$INSTALADOR/nex_installer_dashboard.py"
+install -m755 "$DIR/nex_theme_store_gui.py" "$INSTALADOR/nex_theme_store_gui.py"
+install -m644 "$DIR/theme_store.py" "$INSTALADOR/theme_store.py"
 install -m755 "$DIR/iso/nex-start-gui.sh" "$INSTALADOR/nex-start-gui.sh"
 cp -r "$DIR/post-instalacion" "$DIR/tema" "$INSTALADOR/"
 install -m755 "$DIR/iso/airootfs/root/.automated_script.sh" "$PERFIL/airootfs/root/.automated_script.sh"
@@ -74,7 +76,9 @@ printf '#!/usr/bin/env bash\nexec bash /root/nex-installer/nex-setup/nex-setup.s
     > "$PERFIL/airootfs/usr/local/bin/nex-setup"
 printf '#!/usr/bin/env bash\nexec bash /root/nex-installer/nex-setup/nex-optimizar.sh "$@"\n' \
     > "$PERFIL/airootfs/usr/local/bin/nex-optimizar"
-chmod 755 "$PERFIL/airootfs/usr/local/bin/nex-setup" "$PERFIL/airootfs/usr/local/bin/nex-optimizar"
+printf '#!/usr/bin/env bash\nexec python /root/nex-installer/nex_theme_store_gui.py "$@"\n' \
+    > "$PERFIL/airootfs/usr/local/bin/nex-theme-store"
+chmod 755 "$PERFIL/airootfs/usr/local/bin/nex-setup" "$PERFIL/airootfs/usr/local/bin/nex-optimizar" "$PERFIL/airootfs/usr/local/bin/nex-theme-store"
 
 echo "==> Permisos de los ficheros del instalador"
 sed -i '/^file_permissions=(/a\
@@ -83,6 +87,7 @@ sed -i '/^file_permissions=(/a\
   ["/root/nex-installer/nex_instalador.py"]="0:0:755"\
   ["/root/nex-installer/nex_installer_gui.py"]="0:0:755"\
   ["/root/nex-installer/nex_installer_dashboard.py"]="0:0:755"\
+  ["/root/nex-installer/nex_theme_store_gui.py"]="0:0:755"\
   ["/root/nex-installer/nex-start-gui.sh"]="0:0:755"\
   ["/root/nex-installer/post-instalacion/aplicar-tema.sh"]="0:0:755"\
   ["/root/nex-installer/nex-setup/nex-setup.sh"]="0:0:755"\
@@ -90,7 +95,8 @@ sed -i '/^file_permissions=(/a\
   ["/root/nex-installer/nex-setup/nex_optimizador_gui.py"]="0:0:755"\
   ["/root/nex-installer/nex-setup/nex_plan.py"]="0:0:755"\
   ["/usr/local/bin/nex-setup"]="0:0:755"\
-  ["/usr/local/bin/nex-optimizar"]="0:0:755"' "$PERFIL/profiledef.sh"
+  ["/usr/local/bin/nex-optimizar"]="0:0:755"\
+  ["/usr/local/bin/nex-theme-store"]="0:0:755"' "$PERFIL/profiledef.sh"
 
 echo "==> Construyendo la ISO (tarda bastante: descarga paquetes)"
 mkarchiso -v -w "$TRABAJO" -o "$SALIDA" "$PERFIL"

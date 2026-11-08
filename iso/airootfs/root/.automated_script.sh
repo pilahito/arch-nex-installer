@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# NEX Installer: arranca la interfaz gráfica en tty1.
-# Los registros se dejan visibles para poder diagnosticar un arranque de ISO.
+# NEX Installer: arranca el panel gráfico en tty1.
+# Si el entorno gráfico no arranca, abre el instalador de terminal para no dejar
+# la ISO sin forma de instalar. Los registros quedan visibles para diagnosticar.
 
 set -u
 echo "NEX OS: preparando el instalador gráfico..."
@@ -15,5 +16,9 @@ status=$?
 
 echo "NEX OS: la interfaz gráfica terminó con código $status."
 echo "Registro de Xorg: /tmp/nex-xorg.log"
-sleep 30
-exit "$status"
+
+if [[ "$status" -ne 0 && -f /root/nex-installer/instalar-nex.sh ]]; then
+    echo "NEX OS: abriendo el instalador de terminal como respaldo..."
+    sleep 3
+    bash /root/nex-installer/instalar-nex.sh || true
+fi

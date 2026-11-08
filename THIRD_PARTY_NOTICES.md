@@ -10,6 +10,7 @@ Se conserva la información de origen que acompañaba a los recursos:
 
 - [Logotipos de aplicaciones](setup/assets/logos/ORIGEN.md): atribuciones y licencias indicadas por las fichas de Wikimedia Commons.
 - [Marcas de fabricantes de GPU](setup/assets/marcas/ORIGEN.md): fuentes declaradas y titularidad de las marcas.
+- [Logotipos del panel de instalación](assets/logos/ORIGEN.md): Arch, Ubuntu, Tux, KDE, GNOME y XFCE, con la licencia indicada por Wikimedia Commons (dominio público, CC0, GPLv3 y LGPL).
 
 Los nombres y logotipos identifican productos y fabricantes; sus marcas pertenecen a sus respectivos titulares. Fondos y logotipo NEX se describen como recursos generados por el proyecto en el README de Setup.
 

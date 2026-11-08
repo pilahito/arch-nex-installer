@@ -112,7 +112,10 @@ def construir_config(datos):
         "locale_config": {"kb_layout": "es", "sys_enc": "UTF-8", "sys_lang": "es_ES"},
         "network_config": {"type": "nm"},
         "ntp": True,
-        "packages": ["git", "kitty", "firefox", "btop", "wofi", "waybar", "hyprpaper", "libnewt", "python-pyqt6", "qt6-svg"],
+        "packages": sorted(set(
+            ["git", "kitty", "firefox", "btop", "wofi", "waybar", "hyprpaper", "libnewt", "python-pyqt6", "qt6-svg"]
+            + list(datos.get("paquetes", []))
+        )),
         "pacman_config": {"color": True, "parallel_downloads": 5},
         "profile_config": {
             "gfx_driver": "All open-source",

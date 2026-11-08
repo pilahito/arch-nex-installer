@@ -9,6 +9,9 @@ from pathlib import Path
 
 from PyQt6.QtCore import Qt, QRectF, pyqtSignal
 from PyQt6.QtGui import QColor, QFont, QLinearGradient, QPainter, QPainterPath, QPen, QPixmap
+from PyQt6.QtSvg import QSvgRenderer
+
+import nex_installer_pages as paginas
 from PyQt6.QtWidgets import (
     QApplication, QFrame, QGridLayout, QHBoxLayout, QLabel, QMainWindow,
     QPushButton, QScrollArea, QStackedWidget, QVBoxLayout, QWidget,
@@ -326,10 +329,56 @@ class ThemeCard(QFrame):
         super().mousePressEvent(event)
 
 
+CARPETAS_LOGOS = ('assets/logos', 'assets/marcas', 'setup/assets/logos', 'setup/assets/marcas',
+                  'nex-setup/assets/logos', 'nex-setup/assets/marcas')
+ARCHIVO_LOGO = {
+    'Arch Linux': 'arch.svg', 'Ubuntu': 'ubuntu.svg', 'Linux genérico': 'tux.svg',
+    'Hyprland': 'hyprland.svg', 'KDE Plasma': 'kde.svg', 'GNOME': 'gnome.svg', 'XFCE': 'xfce.svg',
+    'Intel': 'intel.svg', 'NVIDIA': 'nvidia.svg', 'AMD': 'amd.svg',
+}
+
+
+def ruta_logo(nombre):
+    """Logotipo libre guardado en assets/ (o en el Nex Setup incluido); None si no existe."""
+    archivo = ARCHIVO_LOGO.get(nombre)
+    if not archivo:
+        return None
+    for carpeta in CARPETAS_LOGOS:
+        ruta = DIR / carpeta / archivo
+        if ruta.is_file():
+            return ruta
+    return None
+
+
+def logos_gpu():
+    return {clave: ruta_logo(nombre) for clave, nombre in (('INTEL', 'Intel'), ('NVIDIA', 'NVIDIA'), ('AMD', 'AMD'))}
+
+
+class LogoSvg(QWidget):
+    """Dibuja un logotipo SVG centrado y a su proporción."""
+
+    def __init__(self, ruta, lado=52):
+        super().__init__()
+        self.render = QSvgRenderer(str(ruta))
+        self.setFixedSize(lado + 24, lado)
+        self.lado = lado
+
+    def paintEvent(self, event):
+        if not self.render.isValid():
+            return
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        tam = self.render.defaultSize()
+        escala = min((self.width()) / max(tam.width(), 1), self.height() / max(tam.height(), 1))
+        ancho, alto = tam.width() * escala, tam.height() * escala
+        self.render.render(painter, QRectF((self.width() - ancho) / 2, (self.height() - alto) / 2, ancho, alto))
+        painter.end()
+
+
 class ChoiceCard(QFrame):
     clicked = pyqtSignal()
 
-    def __init__(self, icon, title, description, available, selected, height):
+    def __init__(self, icon, title, description, available, selected, height, logo=None):
         super().__init__()
         self.setObjectName('choiceCard')
         self.setProperty('available', available)
@@ -340,10 +389,13 @@ class ChoiceCard(QFrame):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(9, 8, 9, 8)
         layout.setSpacing(3)
-        symbol = label(icon)
-        symbol.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        symbol.setStyleSheet('font-size:31px;font-weight:800;color:#a47cff;')
-        layout.addWidget(symbol)
+        if logo is not None and Path(logo).is_file():
+            layout.addWidget(LogoSvg(logo), alignment=Qt.AlignmentFlag.AlignCenter)
+        else:
+            symbol = label(icon)
+            symbol.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            symbol.setStyleSheet('font-size:31px;font-weight:800;color:#a47cff;')
+            layout.addWidget(symbol)
         heading = label(title)
         heading.setAlignment(Qt.AlignmentFlag.AlignCenter)
         heading.setStyleSheet('font-size:14px;font-weight:700;')
@@ -399,7 +451,7 @@ def cpu_text():
 
 
 class Installer(QMainWindow):
-    steps = ('Distribución', 'Escritorio', 'Drivers', 'Almacenamiento', 'Paquetes', 'Finalizar')
+    steps = ('Distribución', 'Escritorio', 'Drivers', 'Almacenamiento', 'Cuenta', 'Finalizar')
 
     def __init__(self):
         super().__init__()
@@ -468,13 +520,15 @@ class Installer(QMainWindow):
         self.pages = QStackedWidget()
         self.pages.addWidget(self.first_page())
         self.pages.addWidget(self.theme_page())
-        for title, description in (
-            ('Drivers', 'Aquí se revisarán los controladores compatibles con el equipo.'),
-            ('Almacenamiento', 'La selección de disco requiere una comprobación y confirmación independientes.'),
-            ('Paquetes', 'Las herramientas opcionales se revisarán antes de conectar el instalador real.'),
-            ('Resumen', 'Vista previa: la instalación está desactivada hasta verificar el proceso completo.'),
-        ):
-            self.pages.addWidget(self.info_page(title, description))
+        # Páginas reales conectadas al motor de instalación (nex_motor.py)
+        self.estado = paginas.Estado()
+        self.info_labels = {}
+        self.pagina_drivers = paginas.PaginaDrivers(self.estado, ChoiceCard, label, section, logos_gpu())
+        self.pagina_disco = paginas.PaginaAlmacenamiento(self.estado, label, section, self.actualizar_disco)
+        self.pagina_cuenta = paginas.PaginaCuenta(label, section)
+        self.pagina_final = paginas.PaginaFinal(label, section)
+        for pagina in (self.pagina_drivers, self.pagina_disco, self.pagina_cuenta, self.pagina_final):
+            self.pages.addWidget(pagina)
         content_layout.addWidget(self.pages, 1)
         body.addWidget(content, 1)
 
@@ -503,6 +557,7 @@ class Installer(QMainWindow):
             card_layout.addWidget(label(title))
             detail = label(value, 'muted')
             detail.setWordWrap(True)
+            self.info_labels[title] = detail
             card_layout.addWidget(detail)
             info_grid.addWidget(card, index // 2, index % 2)
         side_layout.addLayout(info_grid, 2)
@@ -515,7 +570,8 @@ class Installer(QMainWindow):
         footer_layout.setContentsMargins(16, 8, 12, 8)
         footer_layout.addWidget(label('△  Arch Linux Installer (NEX)'))
         footer_layout.addStretch()
-        self.status = label('╱╱  Hyprland   │   Vista previa   │   Sin cambios en discos', 'muted')
+        self.status = label('╱╱  Hyprland   │   ' + ('Modo simulación: no se toca ningún disco'
+                                                   if paginas.SIMULAR else 'Listo para instalar'), 'muted')
         footer_layout.addWidget(self.status)
         footer_layout.addStretch()
         self.back = QPushButton('Atrás')
@@ -550,7 +606,7 @@ class Installer(QMainWindow):
             ('◉', 'Ubuntu', 'Próximamente', False),
             ('♧', 'Linux genérico', 'Próximamente', False),
         )):
-            button = ChoiceCard(icon, title, description, available, index == 0, 130)
+            button = ChoiceCard(icon, title, description, available, index == 0, 130, logo=ruta_logo(title))
             row.addWidget(button, 0, index)
         layout.addLayout(row)
         layout.addLayout(section('▣  Escritorio / compositor', 'Elige la experiencia de escritorio para NEX OS.'))
@@ -562,7 +618,7 @@ class Installer(QMainWindow):
             ('●', 'GNOME', 'Próximamente', False),
             ('✦', 'XFCE', 'Próximamente', False),
         )):
-            button = ChoiceCard(icon, title, description, available, index == 0, 112)
+            button = ChoiceCard(icon, title, description, available, index == 0, 112, logo=ruta_logo(title))
             desktop_row.addWidget(button, 0, index)
         layout.addLayout(desktop_row)
         layout.addLayout(section('◇  Opciones adicionales', 'Selección visual; se revisará antes de habilitar la instalación.'))
@@ -578,6 +634,7 @@ class Installer(QMainWindow):
             button.setMinimumHeight(52)
             button.setToolTip('Selección de vista previa; no instala paquetes')
             button.toggled.connect(lambda checked, target=button: self.toggle_feature(target, checked))
+            button.setProperty('feature_name', title)
             self.feature_buttons.append(button)
             features.addWidget(button, index // 3, index % 3)
         layout.addLayout(features)
@@ -619,13 +676,14 @@ class Installer(QMainWindow):
 
     def select_theme(self, identificador):
         self.selected_theme = identificador
+        self.estado.tema = identificador
         for card in self.theme_cards:
             card.selected = card.entrada['id'] == identificador
             card.update()
         self.desktop_preview.set_theme(identificador)
         nombre = next((tema['nombre'] for tema in self.theme_catalog
                        if tema['id'] == identificador), identificador)
-        self.status.setText(f'╱╱  Hyprland   │   {nombre}   │   Vista previa')
+        self.status.setText(f'╱╱  Hyprland   │   {nombre}')
 
     @staticmethod
     def toggle_feature(button, checked):
@@ -644,36 +702,96 @@ class Installer(QMainWindow):
         layout.addStretch()
         return page
 
-    def advance(self):
-        index = self.pages.currentIndex()
-        if index < len(self.steps) - 1:
-            self.pages.setCurrentIndex(index + 1)
-            self.title.show()
-            self.subtitle.show()
-            self.title.setText(self.steps[index + 1])
-            self.subtitle.setText('Elige y previsualiza un diseño de NEX OS.' if index + 1 == 1
-                                  else 'Vista previa; todavía no se realizan cambios en discos.')
-            self.back.setEnabled(True)
-            self.update_steps(index + 1)
-            if index + 1 == len(self.steps) - 1:
-                self.next.setText('Instalación desactivada')
-                self.next.setEnabled(False)
-        else:
-            self.subtitle.setText('La instalación está desactivada hasta completar la validación.')
-            self.next.setEnabled(False)
+    SUBTITULOS = {
+        1: 'Elige un diseño de NEX OS para Hyprland.',
+        2: 'Controladores de la tarjeta gráfica.',
+        3: 'Disco donde se instalará el sistema. Se borrará por completo.',
+        4: 'Nombre del equipo, usuario y contraseñas.',
+        5: 'Revisa el resumen y pulsa Instalar.',
+    }
 
-    def previous(self):
-        index = max(0, self.pages.currentIndex() - 1)
+    def mostrar_pagina(self, index):
         self.pages.setCurrentIndex(index)
         self.title.setVisible(index > 0)
         self.subtitle.setVisible(index > 0)
         self.title.setText('Selecciona tu distribución' if index == 0 else self.steps[index])
+        self.subtitle.setText(self.SUBTITULOS.get(index, ''))
         self.back.setEnabled(index > 0)
         self.update_steps(index)
+        ultima = index == len(self.steps) - 1
+        self.next.setText('Instalar' if ultima else 'Continuar  →')
         self.next.setEnabled(True)
-        self.next.setText('Continuar  →')
-        self.subtitle.setText('Elige y previsualiza un diseño de NEX OS.' if index == 1
-                              else 'Vista previa; todavía no se realizan cambios en discos.')
+        if ultima:
+            self.pagina_final.preparar(self.resumen_texto())
+
+    def advance(self):
+        index = self.pages.currentIndex()
+        pagina = self.pages.currentWidget()
+        error = pagina.validar() if hasattr(pagina, 'validar') else None
+        if error:
+            self.status.setText('⚠  ' + error)
+            return
+        if index < len(self.steps) - 1:
+            self.mostrar_pagina(index + 1)
+        else:
+            self.iniciar_instalacion()
+
+    def previous(self):
+        self.mostrar_pagina(max(0, self.pages.currentIndex() - 1))
+
+    def funciones_elegidas(self):
+        elegidas = [boton.property('feature_name') for boton in self.feature_buttons if boton.isChecked()]
+        if 'Drivers NVIDIA' in elegidas and self.estado.gpu is None:
+            self.estado.gpu = 'NVIDIA'
+        return [nombre for nombre in elegidas if nombre in paginas.PAQUETES_FUNCIONES]
+
+    def actualizar_disco(self):
+        detalle = self.info_labels.get('Disco')
+        if detalle is not None:
+            disco = self.estado.disco
+            detalle.setText(f"{disco['nombre']} · {paginas.ti.gib(disco['bytes'])}" if disco else 'Sin seleccionar')
+
+    def resumen_texto(self):
+        self.estado.funciones = self.funciones_elegidas()
+        v = self.pagina_cuenta.valores()
+        disco = self.estado.disco
+        paquetes = paginas.paquetes_elegidos(self.estado)
+        nombre_tema = next((t['nombre'] for t in self.theme_catalog if t['id'] == self.estado.tema),
+                           self.estado.tema)
+        return (
+            f"Disco:  {disco['nombre']} ({paginas.ti.gib(disco['bytes'])}) — SE BORRARÁ\n"
+            f"Equipo:  {v['host']}\n"
+            f"Usuario:  {v['usuario']} (con sudo)\n"
+            f"Zona horaria:  {v['zona']}\n"
+            f"Tema:  {nombre_tema}\n"
+            f"Gráficos:  {self.estado.gpu or 'Mesa genérico'}\n"
+            f"Funciones:  {', '.join(self.estado.funciones) or 'ninguna'}\n"
+            f"Paquetes extra:  {len(paquetes)}"
+        )
+
+    def iniciar_instalacion(self):
+        disco = self.estado.disco
+        if not paginas.confirmar_borrado(self, disco):
+            self.status.setText('⚠  Instalación cancelada: no se ha tocado ningún disco.')
+            return
+        v = self.pagina_cuenta.valores()
+        peticion = paginas.motor.Peticion(
+            disco=disco['nombre'], tamano_bytes=disco['bytes'], host=v['host'], usuario=v['usuario'],
+            zona=v['zona'], pass_usuario=v['pass_usuario'], pass_root=v['pass_root'],
+            tema=self.estado.tema, paquetes=paginas.paquetes_elegidos(self.estado),
+            simular=paginas.SIMULAR,
+        )
+        self.next.setEnabled(False)
+        self.back.setEnabled(False)
+        self.next.setText('Instalando…')
+        self.status.setText('╱╱  Hyprland   │   Instalando: no apagues el equipo')
+        self.pagina_final.empezar(peticion, self.instalacion_terminada)
+
+    def instalacion_terminada(self, ok):
+        self.next.setText('Terminado' if ok else 'Reintentar')
+        self.next.setEnabled(not ok)
+        self.back.setEnabled(not ok)
+        self.status.setText('╱╱  Hyprland   │   ' + ('Instalación completada' if ok else 'La instalación falló'))
 
     def update_steps(self, current):
         for index, button in enumerate(self.step_buttons):

@@ -48,6 +48,7 @@ class Peticion:
     pass_root: str = field(repr=False)
     tema: str = "neon"
     paquetes: List[str] = field(default_factory=list)   # paquetes extra de los repositorios oficiales
+    particionado: str = "auto"                           # auto | home | recuperacion
     simular: bool = True
 
 
@@ -108,6 +109,7 @@ def instalar(p: Peticion, log: Callable[[str], None],
         "pass_usuario": p.pass_usuario,
         "pass_root": p.pass_root,
         "paquetes": list(p.paquetes),
+        "particionado": p.particionado,
     }
 
     def preparar():
@@ -159,6 +161,7 @@ def instalar(p: Peticion, log: Callable[[str], None],
         comandos = {
             "nex-setup": "/usr/local/share/nex-setup/nex-setup.sh",
             "nex-optimizar": "/usr/local/share/nex-setup/nex-optimizar.sh",
+            "nex-actualizar": "/usr/local/share/nex-setup/nex-actualizar.sh",
             "nex-optimizar-gui": "/usr/local/share/nex-setup/nex_optimizador_gui.py",
             "nex-theme-store": "/usr/local/share/nex/nex_theme_store_gui.py",
         }

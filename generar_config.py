@@ -58,6 +58,54 @@ def leer_entorno(nombre):
     return valor
 
 
+PARTICIONADOS = {
+    "auto": "Automático: EFI 1 GiB + raíz con todo el resto",
+    "home": "Carpeta /home separada (raíz 40 %, el resto para /home)",
+    "recuperacion": "Partición de recuperación de 2 GiB con el instalador",
+}
+
+
+def _particion(inicio_mib, tamano_mib, punto, sistema):
+    return {
+        "btrfs": [],
+        "dev_path": None,
+        "flags": [],
+        "fs_type": sistema,
+        "size": tamano(tamano_mib),
+        "mount_options": [],
+        "mountpoint": punto,
+        "obj_id": str(uuid.uuid4()),
+        "start": tamano(inicio_mib),
+        "status": "create",
+        "type": "primary",
+    }
+
+
+def construir_particiones(datos, efi, raiz):
+    """Lista de particiones según el repartido elegido. 'auto' deja el reparto por defecto."""
+    modo = datos.get("particionado", "auto")
+    if modo == "auto":
+        return [efi, raiz]
+    if modo not in PARTICIONADOS:
+        raise SystemExit(f"Repartido no válido: {modo}")
+    total = int(datos["tamano_mib"])
+    inicio = efi["start"]["value"] + efi["size"]["value"]
+    libre = total - inicio - 1
+    if modo == "home":
+        tamano_raiz = max(MIN_RAIZ_MIB, int(libre * 0.4))
+        tamano_home = libre - tamano_raiz
+        if tamano_home < 2048:
+            raise SystemExit("El disco es demasiado pequeño para una carpeta /home separada.")
+        return [efi, _particion(inicio, tamano_raiz, "/", "ext4"),
+                _particion(inicio + tamano_raiz, tamano_home, "/home", "ext4")]
+    recuperacion = 2048
+    tamano_raiz = libre - recuperacion
+    if tamano_raiz < MIN_RAIZ_MIB:
+        raise SystemExit("El disco es demasiado pequeño para la partición de recuperación.")
+    return [efi, _particion(inicio, tamano_raiz, "/", "ext4"),
+            _particion(inicio + tamano_raiz, recuperacion, None, "ext4")]
+
+
 def construir_config(datos):
     disco = datos["disco"]
     total = int(datos["tamano_mib"])
@@ -102,7 +150,7 @@ def construir_config(datos):
             "device_modifications": [
                 {
                     "device": disco,
-                    "partitions": [particion_efi, particion_raiz],
+                    "partitions": construir_particiones(datos, particion_efi, particion_raiz),
                     "wipe": True,
                 }
             ],

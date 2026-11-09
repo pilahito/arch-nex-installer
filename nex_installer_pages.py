@@ -15,11 +15,12 @@ from typing import List, Optional
 from PyQt6.QtCore import QPointF, QRectF, Qt, QThread, QTimer, pyqtSignal
 from PyQt6.QtGui import QBrush, QColor, QConicalGradient, QFont, QPainter, QPen
 from PyQt6.QtWidgets import (
-    QFrame, QGridLayout, QHBoxLayout, QInputDialog, QLabel, QLineEdit, QMessageBox,
+    QComboBox, QFrame, QGridLayout, QHBoxLayout, QInputDialog, QLabel, QLineEdit, QMessageBox,
     QPlainTextEdit, QProgressBar, QPushButton, QScrollArea, QVBoxLayout, QWidget,
 )
 
 import nex_motor as motor
+from generar_config import PARTICIONADOS as PARTICIONADOS_UI
 import nex_instalador as ti  # discos y validadores; no abre curses al importarlo
 
 SIMULAR = "--simular" in sys.argv
@@ -55,6 +56,7 @@ class Estado:
     disco: Optional[dict] = None
     tema: str = "neon"
     funciones: List[str] = field(default_factory=list)
+    particionado: str = "auto"
 
 
 def detectar_gpu() -> Optional[str]:
@@ -173,6 +175,13 @@ class PaginaAlmacenamiento(QScrollArea):
         self.capa.addLayout(seccion(
             "Disco de instalación",
             "Se borrará TODO el contenido del disco que elijas. Antes de instalar se pedirá confirmarlo."))
+        self.capa.addWidget(etiqueta("Repartido del disco", "section"))
+        self.repartido = QComboBox()
+        for clave, texto in PARTICIONADOS_UI.items():
+            self.repartido.addItem(texto, clave)
+        self.repartido.setCurrentIndex(max(0, list(PARTICIONADOS_UI).index(estado.particionado)))
+        self.repartido.currentIndexChanged.connect(self.cambiar_repartido)
+        self.capa.addWidget(self.repartido)
         self.lista = QVBoxLayout()
         self.lista.setSpacing(8)
         self.capa.addLayout(self.lista)
@@ -183,6 +192,9 @@ class PaginaAlmacenamiento(QScrollArea):
         self.setWidget(self.pagina)
         self.tarjetas = []
         self.cargar()
+
+    def cambiar_repartido(self, indice):
+        self.estado.particionado = self.repartido.itemData(indice)
 
     def cargar(self):
         while self.lista.count():

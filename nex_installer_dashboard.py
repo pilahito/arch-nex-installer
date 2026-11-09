@@ -767,6 +767,7 @@ class Installer(QMainWindow):
             f"Usuario:  {v['usuario']} (con sudo)\n"
             f"Zona horaria:  {v['zona']}\n"
             f"Tema:  {nombre_tema}\n"
+            f"Repartido:  {paginas.PARTICIONADOS_UI.get(self.estado.particionado, '')}\n"
             f"Gráficos:  {self.estado.gpu or 'Mesa genérico'}\n"
             f"Funciones:  {', '.join(self.estado.funciones) or 'ninguna'}\n"
             f"Paquetes extra:  {len(paquetes)}"
@@ -782,6 +783,7 @@ class Installer(QMainWindow):
             disco=disco['nombre'], tamano_bytes=disco['bytes'], host=v['host'], usuario=v['usuario'],
             zona=v['zona'], pass_usuario=v['pass_usuario'], pass_root=v['pass_root'],
             tema=self.estado.tema, paquetes=paginas.paquetes_elegidos(self.estado),
+            particionado=self.estado.particionado,
             simular=paginas.SIMULAR,
         )
         self.next.setEnabled(False)

@@ -8,6 +8,8 @@ echo "NEX OS: preparando el instalador gráfico..."
 # El inicio automático sucede tras el login live; no bloquear aquí esperando
 # servicios opcionales que pueden permanecer en estado «starting» en QEMU.
 systemctl is-system-running || true
+# Red: arranca NetworkManager para que el Wi-Fi y el cable funcionen en el instalador
+systemctl start NetworkManager 2>/dev/null || true
 
 cd /root/nex-installer
 echo "NEX OS: iniciando Xorg y el instalador..."
@@ -20,5 +22,5 @@ echo "Registro de Xorg: /tmp/nex-xorg.log"
 if [[ "$status" -ne 0 && -f /root/nex-installer/instalar-nex.sh ]]; then
     echo "NEX OS: abriendo el instalador de terminal como respaldo..."
     sleep 3
-    bash /root/nex-installer/instalar-nex.sh || true
+    bash /root/nex-installer/instalar-nex.sh --simular || true
 fi

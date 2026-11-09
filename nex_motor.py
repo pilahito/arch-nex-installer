@@ -96,6 +96,10 @@ def instalar(p: Peticion, log: Callable[[str], None],
     """Ejecuta todos los pasos. `estado(i, "en curso"|"hecho"|"error")` informa del avance."""
     validar(p)
     simular = p.simular
+    if not simular:
+        log("Instalación real bloqueada hasta validar NEX OS en una máquina virtual.")
+        estado(0, "error")
+        return False
     trabajo = Path(tempfile.mkdtemp(prefix="nex-"))
     os.chmod(trabajo, 0o700)
     particion_efi = gc.particion_de(p.disco, 1)

@@ -22,7 +22,7 @@ Ninguno de los dos repositorios de origen contiene un archivo de licencia genera
 - `iso/build-iso.sh` empaqueta Setup desde `setup/` por defecto; `NEX_SETUP_DIR` permite seleccionar otra ubicación.
 - CI compila los módulos y ejecuta las suites Python y shell en Linux.
 - La ISO debe probarse con UEFI en QEMU usando únicamente el disco qcow2 de prueba.
-- La interfaz actual del instalador es una vista previa; el flujo de instalación sigue bloqueado hasta implementar y verificar todas las protecciones del disco.
+- El panel y la terminal comparten el motor de instalación. La ISO arranca en simulación y el motor rechaza la ejecución real hasta validar las protecciones del disco en QEMU.
 
 ## Límites de seguridad
 

@@ -497,10 +497,45 @@ def pantalla_final(scr, ok, registro):
     leer_tecla(scr)
 
 
+def hay_internet():
+    """Comprueba que hay conexión con el repositorio de Arch (sin descargar nada)."""
+    import socket
+    try:
+        with socket.create_connection(("geo.mirror.pkgbuild.com", 443), timeout=4):
+            return True
+    except OSError:
+        return False
+
+
+def pantalla_red(scr):
+    """Menú de red: Wi-Fi, cable o Bluetooth con nmtui (NetworkManager), sin comandos."""
+    while True:
+        conectado = SIMULAR or hay_internet()
+        estado = ("Modo simulación: no se necesita conexión." if SIMULAR else
+                  "Conectado a internet." if conectado else "Sin conexión a internet.")
+        opcion = menu(scr, "Red", f"{estado}\nConecta el equipo para descargar Arch y los paquetes.", [
+            ("seguir", "Continuar" if conectado else "Continuar sin internet (no se podrá instalar)"),
+            ("ajustar", "Configurar Wi-Fi o cable (menú guiado)"),
+        ])
+        if opcion == "ajustar":
+            if shutil.which("nmtui") is None:
+                mostrar_aviso(scr, "Red", "No está instalado nmtui (paquete networkmanager).")
+                continue
+            curses.endwin()
+            try:
+                subprocess.run(["nmtui"], check=False)
+            finally:
+                scr.refresh()
+                curses.doupdate()
+        else:
+            return
+
+
 def flujo(scr):
     iniciar_colores()
     curses.curs_set(0)
     pantalla_bienvenida(scr)
+    pantalla_red(scr)
     discos, medio = detectar_discos()
     disco = pantalla_disco(scr, discos, medio)
     pantalla_confirmar_disco(scr, disco)

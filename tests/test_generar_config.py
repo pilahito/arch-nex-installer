@@ -12,6 +12,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
+import generar_config as gc
+
 RAIZ = Path(__file__).resolve().parent.parent
 SCRIPT = RAIZ / "generar_config.py"
 
@@ -40,6 +42,14 @@ def generar(disco="/dev/sda", tamano_mib="476940", **extra):
 
 
 class GenerarConfigTest(unittest.TestCase):
+    def test_recuperacion_no_se_ofrece_hasta_tener_contenido(self):
+        self.assertNotIn("recuperacion", gc.PARTICIONADOS)
+        datos = {"disco": "/dev/sdz", "tamano_mib": 32768,
+                 "host": "nex", "usuario": "nex", "zona": "UTC",
+                 "particionado": "recuperacion"}
+        with self.assertRaises(SystemExit):
+            gc.construir_config(datos)
+
     def test_configuracion_basica(self):
         res, carpeta = generar()
         self.assertEqual(res.returncode, 0, res.stderr)

@@ -64,6 +64,8 @@ install -m755 "$DIR/nex_theme_store_gui.py" "$INSTALADOR/nex_theme_store_gui.py"
 install -m644 "$DIR/theme_store.py" "$INSTALADOR/theme_store.py"
 install -m644 "$DIR/nex_motor.py" "$INSTALADOR/nex_motor.py"
 install -m644 "$DIR/nex_installer_pages.py" "$INSTALADOR/nex_installer_pages.py"
+install -m644 "$DIR/nex_network.py" "$INSTALADOR/nex_network.py"
+install -m644 "$DIR/nex_network_gui.py" "$INSTALADOR/nex_network_gui.py"
 install -m755 "$DIR/iso/nex-start-gui.sh" "$INSTALADOR/nex-start-gui.sh"
 cp -r "$DIR/post-instalacion" "$DIR/tema" "$DIR/assets" "$INSTALADOR/"
 install -m755 "$DIR/iso/airootfs/root/.automated_script.sh" "$PERFIL/airootfs/root/.automated_script.sh"
@@ -103,6 +105,10 @@ sed -i '/^file_permissions=(/a\
   ["/usr/local/bin/nex-optimizar"]="0:0:755"\
   ["/usr/local/bin/nex-theme-store"]="0:0:755"' "$PERFIL/profiledef.sh"
 
+if [[ "${NEX_PROFILE_ONLY:-0}" == "1" ]]; then
+    echo "==> Perfil listo para inspección en: $PERFIL"
+    exit 0
+fi
 echo "==> Construyendo la ISO (tarda bastante: descarga paquetes)"
 mkarchiso -v -w "$TRABAJO" -o "$SALIDA" "$PERFIL"
 

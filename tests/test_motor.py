@@ -2,6 +2,7 @@
 
 import sys
 import unittest
+from unittest import mock
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -19,6 +20,15 @@ def peticion(**cambios):
 
 
 class MotorSimuladoTest(unittest.TestCase):
+    def test_instalacion_real_bloqueada_antes_de_cualquier_comando(self):
+        registro, estados = [], []
+        with mock.patch.object(motor.subprocess, "Popen", side_effect=AssertionError("no ejecutar")):
+            ok = motor.instalar(peticion(simular=False), registro.append,
+                                lambda indice, estado: estados.append((indice, estado)))
+        self.assertFalse(ok)
+        self.assertIn("bloqueada", " ".join(registro))
+        self.assertEqual(estados, [(0, "error")])
+
     def test_recorre_todos_los_pasos(self):
         registro, estados = [], {}
         ok = motor.instalar(peticion(), registro.append, lambda i, e: estados.__setitem__(i, e))

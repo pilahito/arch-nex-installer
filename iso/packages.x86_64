@@ -16,3 +16,8 @@ parted
 grub
 efibootmgr
 mtools
+networkmanager
+network-manager-applet
+wpa_supplicant
+wireless-regdb
+linux-firmware

@@ -61,7 +61,6 @@ def leer_entorno(nombre):
 PARTICIONADOS = {
     "auto": "Automático: EFI 1 GiB + raíz con todo el resto",
     "home": "Carpeta /home separada (raíz 40 %, el resto para /home)",
-    "recuperacion": "Partición de recuperación de 2 GiB con el instalador",
 }
 
 
@@ -98,12 +97,7 @@ def construir_particiones(datos, efi, raiz):
             raise SystemExit("El disco es demasiado pequeño para una carpeta /home separada.")
         return [efi, _particion(inicio, tamano_raiz, "/", "ext4"),
                 _particion(inicio + tamano_raiz, tamano_home, "/home", "ext4")]
-    recuperacion = 2048
-    tamano_raiz = libre - recuperacion
-    if tamano_raiz < MIN_RAIZ_MIB:
-        raise SystemExit("El disco es demasiado pequeño para la partición de recuperación.")
-    return [efi, _particion(inicio, tamano_raiz, "/", "ext4"),
-            _particion(inicio + tamano_raiz, recuperacion, None, "ext4")]
+    raise SystemExit(f"Repartido no válido: {modo}")
 
 
 def construir_config(datos):

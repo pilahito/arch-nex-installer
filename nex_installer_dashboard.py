@@ -12,6 +12,7 @@ from PyQt6.QtGui import QColor, QFont, QLinearGradient, QPainter, QPainterPath, 
 from PyQt6.QtSvg import QSvgRenderer
 
 import nex_installer_pages as paginas
+from nex_network_gui import DialogoRed
 from PyQt6.QtWidgets import (
     QApplication, QFrame, QGridLayout, QHBoxLayout, QLabel, QMainWindow,
     QPushButton, QScrollArea, QStackedWidget, QVBoxLayout, QWidget,
@@ -577,6 +578,10 @@ class Installer(QMainWindow):
         self.back = QPushButton('Atrás')
         self.back.setEnabled(False)
         self.back.clicked.connect(self.previous)
+        self.red = QPushButton('Red')
+        self.red.setToolTip('Configurar Wi-Fi o cable sin comandos')
+        self.red.clicked.connect(self.configurar_red)
+        footer_layout.addWidget(self.red)
         footer_layout.addWidget(self.back)
         self.next = QPushButton('Continuar  →')
         self.next.setObjectName('primary')
@@ -726,6 +731,11 @@ class Installer(QMainWindow):
         self.next.setEnabled(True)
         if ultima:
             self.pagina_final.preparar(self.resumen_texto())
+
+    def configurar_red(self):
+        """Abre el menú de Wi-Fi y cable integrado en NEX OS."""
+        DialogoRed(self).exec()
+        self.status.setText('╱╱  Red: revisa la conexión antes de instalar')
 
     def advance(self):
         index = self.pages.currentIndex()

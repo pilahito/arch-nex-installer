@@ -37,6 +37,13 @@ PAQUETES_FUNCIONES = {
     "Multimedia": ["vlc", "mpv", "obs-studio"],
     "Ahorro de energía": ["power-profiles-daemon"],
     "Rendimiento": ["cpupower"],
+    "Fuentes Nerd": ["ttf-jetbrains-mono-nerd"],
+    "Iconos Papirus": ["papirus-icon-theme"],
+    "Notificaciones": ["swaync"],
+    "Capturas de pantalla": ["grim", "slurp"],
+    "Portapapeles": ["cliphist"],
+    "Bluetooth": ["bluez", "bluez-utils"],
+    "Brillo de pantalla": ["brightnessctl"],
 }
 
 

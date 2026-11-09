@@ -627,6 +627,9 @@ class Installer(QMainWindow):
         for index, (icon, title) in enumerate((
             ('⚒', 'Juegos'), ('◈', 'Drivers NVIDIA'), ('</>', 'Desarrollo'),
             ('▣', 'Multimedia'), ('◌', 'Ahorro de energía'), ('⚡', 'Rendimiento'),
+            ('Aa', 'Fuentes Nerd'), ('◎', 'Iconos Papirus'), ('✉', 'Notificaciones'),
+            ('⌗', 'Capturas de pantalla'), ('⎘', 'Portapapeles'), ('ᛒ', 'Bluetooth'),
+            ('☼', 'Brillo de pantalla'),
         )):
             button = QPushButton(f'{icon}  {title}    ○')
             button.setObjectName('feature')

@@ -46,6 +46,9 @@ sed -i \
     -e 's/^iso_publisher=.*/iso_publisher="Nex Arch"/' \
     "$PERFIL/profiledef.sh"
 
+# xz falló al comprimir el squashfs (error 9); zstd es más rápido y usa menos memoria
+sed -i "s|^airootfs_image_tool_options=.*|airootfs_image_tool_options=('-comp' 'zstd' '-Xcompression-level' '15' '-b' '1M')|" "$PERFIL/profiledef.sh"
+
 echo "==> Paquetes adicionales"
 cat "$DIR/iso/packages.x86_64" >> "$PERFIL/packages.x86_64"
 

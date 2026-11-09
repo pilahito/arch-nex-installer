@@ -27,6 +27,7 @@ from pathlib import Path
 DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(DIR))
 import generar_config as gc  # noqa: E402
+import nex_motor as motor  # noqa: E402
 
 TEMA_DIR = DIR / "tema"
 MONTAJE = "/mnt"
@@ -376,11 +377,10 @@ def pantalla_equipo(scr):
 
 
 def pantalla_tema(scr):
-    return menu(scr, "Tema", "Elige el tema de escritorio. Lo puedes cambiar después en ~/.config.", [
-        ("neon", "Nex neón (morado, magenta y cian)"),
-        ("oscuro", "Nex oscuro (azul marino y cian)"),
-        ("claro", "Nex claro (fondo blanco y azul)"),
-    ])
+    catalogo = json.loads((TEMA_DIR / "catalogo.json").read_text(encoding="utf-8"))
+    opciones = [(tema["id"], f'{tema["nombre"]} · {tema["descripcion"]}')
+                for tema in catalogo]
+    return menu(scr, "Tema", "Elige un diseño de escritorio. Podrás cambiarlo después.", opciones)
 
 
 def pantalla_resumen(scr, disco, equipo, tema):
@@ -458,114 +458,25 @@ def comando(cmd, registro):
 
 
 def instalar(scr, disco, equipo, tema):
+    """Instala con el motor compartido y pinta el progreso en la terminal."""
     estados = ["pendiente"] * len(PASOS)
     registro = []
-    trabajo = Path(tempfile.mkdtemp(prefix="nex-"))
-    os.chmod(trabajo, 0o700)
-    particion_efi = gc.particion_de(disco["nombre"], 1)
-    particion_raiz = gc.particion_de(disco["nombre"], 2)
-    datos = {
-        "disco": disco["nombre"],
-        "tamano_mib": disco["bytes"] // (1024 * 1024),
-        "host": equipo["host"],
-        "usuario": equipo["usuario"],
-        "zona": equipo["zona"],
-        "pass_usuario": equipo["pass_usuario"],
-        "pass_root": equipo["pass_root"],
-    }
+    peticion = motor.Peticion(
+        disco=disco["nombre"], tamano_bytes=disco["bytes"], host=equipo["host"],
+        usuario=equipo["usuario"], zona=equipo["zona"],
+        pass_usuario=equipo["pass_usuario"], pass_root=equipo["pass_root"],
+        tema=tema, simular=SIMULAR,
+    )
 
-    def paso(indice, funcion):
-        estados[indice] = "en curso"
+    def log(texto):
+        registro.append(texto)
         pintar_progreso(scr, estados, registro)
-        try:
-            funcion()
-        except Exception as error:  # noqa: BLE001 - se muestra al usuario
-            estados[indice] = "error"
-            registro.append(f"ERROR: {error}")
-            pintar_progreso(scr, estados, registro)
-            return False
-        estados[indice] = "hecho"
+
+    def estado(indice, nuevo):
+        estados[indice] = nuevo
         pintar_progreso(scr, estados, registro)
-        return True
 
-    def preparar():
-        os.umask(0o077)
-        config = gc.construir_config(datos)
-        creds = gc.construir_credenciales(datos)
-        (trabajo / "config.json").write_text(json.dumps(config, indent=2, ensure_ascii=False))
-        (trabajo / "creds.json").write_text(json.dumps(creds, indent=2))
-        registro.append("Configuración preparada.")
-
-    def archinstall():
-        cmd = ["archinstall", "--config", str(trabajo / "config.json"),
-               "--creds", str(trabajo / "creds.json"), "--silent"]
-        if SIMULAR:
-            registro.append("[simulación] " + " ".join(cmd))
-            time.sleep(0.5)
-            return
-        proceso = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
-        for linea in proceso.stdout:
-            registro.append(linea.rstrip())
-            pintar_progreso(scr, estados, registro)
-        if proceso.wait():
-            raise RuntimeError(f"archinstall terminó con código {proceso.returncode}")
-
-    def montar():
-        if SIMULAR:
-            registro.append(f"[simulación] montar {particion_raiz} en {MONTAJE}")
-            return
-        if ejecutar(["mountpoint", "-q", MONTAJE]).returncode:
-            comando(["mount", particion_raiz, MONTAJE], registro)
-        if ejecutar(["mountpoint", "-q", f"{MONTAJE}/boot"]).returncode:
-            comando(["mount", particion_efi, f"{MONTAJE}/boot"], registro)
-
-    def aplicar_tema():
-        destino = Path(MONTAJE) / "usr/local/share/nex"
-        if SIMULAR:
-            registro.append(f"[simulación] tema {tema} para {equipo['usuario']}")
-            return
-        destino.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(DIR / "post-instalacion" / "aplicar-tema.sh", destino / "aplicar-tema.sh")
-        os.chmod(destino / "aplicar-tema.sh", 0o755)
-        shutil.copytree(TEMA_DIR, destino / "tema", dirs_exist_ok=True)
-        comando(["arch-chroot", MONTAJE, "/usr/local/share/nex/aplicar-tema.sh",
-                 equipo["usuario"], tema], registro)
-
-    def instalar_setup():
-        """Copia Nex Setup al sistema instalado y crea sus comandos en /usr/local/bin."""
-        origen = DIR / "nex-setup"
-        destino = Path(MONTAJE) / "usr/local/share/nex-setup"
-        comandos = {
-            "nex-setup": "/usr/local/share/nex-setup/nex-setup.sh",
-            "nex-optimizar": "/usr/local/share/nex-setup/nex-optimizar.sh",
-            "nex-optimizar-gui": "/usr/local/share/nex-setup/nex_optimizador_gui.py",
-        }
-        if SIMULAR:
-            registro.append(f"[simulación] copiar Nex Setup a {destino} y crear {', '.join(comandos)}")
-            return
-        if not origen.is_dir():
-            raise RuntimeError(f"No encuentro Nex Setup en {origen}")
-        shutil.copytree(origen, destino, ignore=EXCLUIR_SETUP, dirs_exist_ok=True)
-        for nombre, ruta in comandos.items():
-            ejecutable = Path(MONTAJE) / "usr/local/bin" / nombre
-            ejecutable.parent.mkdir(parents=True, exist_ok=True)
-            if ruta.endswith(".py"):
-                ejecutable.write_text(f"#!/usr/bin/env bash\nexec python3 {ruta} \"$@\"\n")
-            else:
-                ejecutable.write_text(f"#!/usr/bin/env bash\nexec bash {ruta} \"$@\"\n")
-            os.chmod(ejecutable, 0o755)
-        registro.append("Nex Setup instalado.")
-
-    def desmontar():
-        if not SIMULAR:
-            ejecutar(["umount", "-R", MONTAJE])
-        registro.append("Listo.")
-
-    try:
-        ok = (paso(0, preparar) and paso(1, archinstall) and paso(2, montar)
-              and paso(3, aplicar_tema) and paso(4, instalar_setup) and paso(5, desmontar))
-    finally:
-        shutil.rmtree(trabajo, ignore_errors=True)
+    ok = motor.instalar(peticion, log, estado, MONTAJE)
     return ok, registro
 
 
@@ -586,10 +497,45 @@ def pantalla_final(scr, ok, registro):
     leer_tecla(scr)
 
 
+def hay_internet():
+    """Comprueba que hay conexión con el repositorio de Arch (sin descargar nada)."""
+    import socket
+    try:
+        with socket.create_connection(("geo.mirror.pkgbuild.com", 443), timeout=4):
+            return True
+    except OSError:
+        return False
+
+
+def pantalla_red(scr):
+    """Menú de red: Wi-Fi, cable o Bluetooth con nmtui (NetworkManager), sin comandos."""
+    while True:
+        conectado = SIMULAR or hay_internet()
+        estado = ("Modo simulación: no se necesita conexión." if SIMULAR else
+                  "Conectado a internet." if conectado else "Sin conexión a internet.")
+        opcion = menu(scr, "Red", f"{estado}\nConecta el equipo para descargar Arch y los paquetes.", [
+            ("seguir", "Continuar" if conectado else "Continuar sin internet (no se podrá instalar)"),
+            ("ajustar", "Configurar Wi-Fi o cable (menú guiado)"),
+        ])
+        if opcion == "ajustar":
+            if shutil.which("nmtui") is None:
+                mostrar_aviso(scr, "Red", "No está instalado nmtui (paquete networkmanager).")
+                continue
+            curses.endwin()
+            try:
+                subprocess.run(["nmtui"], check=False)
+            finally:
+                scr.refresh()
+                curses.doupdate()
+        else:
+            return
+
+
 def flujo(scr):
     iniciar_colores()
     curses.curs_set(0)
     pantalla_bienvenida(scr)
+    pantalla_red(scr)
     discos, medio = detectar_discos()
     disco = pantalla_disco(scr, discos, medio)
     pantalla_confirmar_disco(scr, disco)

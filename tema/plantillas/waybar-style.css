@@ -8,7 +8,7 @@
 }
 
 window#waybar {
-    background: rgba(26, 11, 46, 0.85);
+    background: #__PANEL__;
     color: #__TEXTO__;
     border-bottom: 2px solid #__ACENTO2__;
 }

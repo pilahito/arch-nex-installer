@@ -1,0 +1,16 @@
+[
+  {"id":"neon","nombre":"NEX NEÓN","grupo":"NEX","descripcion":"Morado, magenta y cian"},
+  {"id":"oscuro","nombre":"OSCURO","grupo":"NEX","descripcion":"Azul marino y cian"},
+  {"id":"claro","nombre":"CLARO","grupo":"NEX","descripcion":"Blanco y azul"},
+  {"id":"hyde","nombre":"HYDE","grupo":"NEX","descripcion":"Grafito y violeta"},
+  {"id":"puntos","nombre":"NEX Puntos","grupo":"Puntos","descripcion":"Negro, blanco y rojo; estilo de matriz"},
+  {"id":"puntos-claro","nombre":"NEX Puntos Claro","grupo":"Puntos","descripcion":"Blanco, negro y rojo; estilo de matriz"},
+  {"id":"catppuccin","nombre":"Catppuccin","grupo":"Paletas","descripcion":"Lavanda y rosa sobre azul oscuro"},
+  {"id":"rose-pine","nombre":"Rosé Pine","grupo":"Paletas","descripcion":"Iris y rosa sobre grafito"},
+  {"id":"gruvbox","nombre":"Gruvbox","grupo":"Paletas","descripcion":"Ámbar y verde sobre marrón oscuro"},
+  {"id":"nord","nombre":"Nord","grupo":"Paletas","descripcion":"Azul hielo sobre gris polar"},
+  {"id":"dracula","nombre":"Dracula","grupo":"Paletas","descripcion":"Violeta y rosa sobre gris nocturno"},
+  {"id":"tokyo-night","nombre":"Tokyo Night","grupo":"Paletas","descripcion":"Azul y violeta sobre índigo"},
+  {"id":"everforest","nombre":"Everforest","grupo":"Paletas","descripcion":"Verde musgo y dorado"},
+  {"id":"kanagawa","nombre":"Kanagawa","grupo":"Paletas","descripcion":"Azul tinta y ciruela"}
+]

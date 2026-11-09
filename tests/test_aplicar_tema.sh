@@ -49,4 +49,13 @@ if bash "$SCRIPT" tester inexistente "$RAIZ" >/dev/null 2>&1; then
     fallo "una paleta inexistente no dio error"
 fi
 
+# 5. Todos los diseños del catálogo generan configuración y fondo propios.
+for paleta in "$DIR"/tema/paletas/*.env; do
+    nombre="$(basename "$paleta" .env)"
+    bash "$SCRIPT" tester "$nombre" "$RAIZ" >/dev/null
+    [[ -s "$CASA/.local/share/nex/fondos/$nombre.png" ]] || fallo "falta el fondo de $nombre"
+    grep -q "/$nombre.png" "$CASA/.config/hypr/hyprpaper.conf" || fallo "hyprpaper no apunta a $nombre"
+    grep -q '__' "$CASA/.config/waybar/style.css" && fallo "marcadores en $nombre"
+done
+
 echo "OK: aplicar-tema.sh pasa todas las pruebas."

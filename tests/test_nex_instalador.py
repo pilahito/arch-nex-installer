@@ -64,6 +64,7 @@ class RecorridoSimuladoTest(unittest.TestCase):
 
     TECLAS = [
         "\n",               # bienvenida
+        "\n",               # red: continuar en modo simulación
         "\n",               # elegir el disco de prueba
         "/dev/sdz\n",       # confirmar el borrado escribiendo el nombre
         "\n", "\n", "\n",   # equipo, usuario y zona por defecto

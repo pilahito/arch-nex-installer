@@ -46,6 +46,9 @@ sed -i \
     -e 's/^iso_publisher=.*/iso_publisher="Nex Arch"/' \
     "$PERFIL/profiledef.sh"
 
+# xz falló al comprimir el squashfs (error 9); zstd es más rápido y usa menos memoria
+sed -i "s|^airootfs_image_tool_options=.*|airootfs_image_tool_options=('-comp' 'zstd' '-Xcompression-level' '15' '-b' '1M')|" "$PERFIL/profiledef.sh"
+
 echo "==> Paquetes adicionales"
 cat "$DIR/iso/packages.x86_64" >> "$PERFIL/packages.x86_64"
 
@@ -55,11 +58,20 @@ mkdir -p "$INSTALADOR"
 install -m755 "$DIR/instalar-nex.sh" "$INSTALADOR/instalar-nex.sh"
 install -m755 "$DIR/generar_config.py" "$INSTALADOR/generar_config.py"
 install -m755 "$DIR/nex_instalador.py" "$INSTALADOR/nex_instalador.py"
-cp -r "$DIR/post-instalacion" "$DIR/tema" "$INSTALADOR/"
+install -m755 "$DIR/nex_installer_gui.py" "$INSTALADOR/nex_installer_gui.py"
+install -m755 "$DIR/nex_installer_dashboard.py" "$INSTALADOR/nex_installer_dashboard.py"
+install -m755 "$DIR/nex_theme_store_gui.py" "$INSTALADOR/nex_theme_store_gui.py"
+install -m644 "$DIR/theme_store.py" "$INSTALADOR/theme_store.py"
+install -m644 "$DIR/nex_motor.py" "$INSTALADOR/nex_motor.py"
+install -m644 "$DIR/nex_installer_pages.py" "$INSTALADOR/nex_installer_pages.py"
+install -m644 "$DIR/nex_network.py" "$INSTALADOR/nex_network.py"
+install -m644 "$DIR/nex_network_gui.py" "$INSTALADOR/nex_network_gui.py"
+install -m755 "$DIR/iso/nex-start-gui.sh" "$INSTALADOR/nex-start-gui.sh"
+cp -r "$DIR/post-instalacion" "$DIR/tema" "$DIR/assets" "$INSTALADOR/"
 install -m755 "$DIR/iso/airootfs/root/.automated_script.sh" "$PERFIL/airootfs/root/.automated_script.sh"
 
 echo "==> Nex Setup (optimizador, menú de apps y asistente gráfico) dentro de la ISO"
-SETUP="${NEX_SETUP_DIR:-$DIR/../arch-nex-setup}"
+SETUP="${NEX_SETUP_DIR:-$DIR/setup}"
 [[ -f "$SETUP/nex_optimizador_gui.py" ]] || error "No encuentro Nex Setup en $SETUP (define NEX_SETUP_DIR)"
 mkdir -p "$INSTALADOR/nex-setup"
 tar -C "$SETUP" --exclude=./.git --exclude=./tests --exclude=./docs --exclude=./__pycache__ -cf - . \
@@ -71,21 +83,32 @@ printf '#!/usr/bin/env bash\nexec bash /root/nex-installer/nex-setup/nex-setup.s
     > "$PERFIL/airootfs/usr/local/bin/nex-setup"
 printf '#!/usr/bin/env bash\nexec bash /root/nex-installer/nex-setup/nex-optimizar.sh "$@"\n' \
     > "$PERFIL/airootfs/usr/local/bin/nex-optimizar"
-chmod 755 "$PERFIL/airootfs/usr/local/bin/nex-setup" "$PERFIL/airootfs/usr/local/bin/nex-optimizar"
+printf '#!/usr/bin/env bash\nexec python /root/nex-installer/nex_theme_store_gui.py "$@"\n' \
+    > "$PERFIL/airootfs/usr/local/bin/nex-theme-store"
+chmod 755 "$PERFIL/airootfs/usr/local/bin/nex-setup" "$PERFIL/airootfs/usr/local/bin/nex-optimizar" "$PERFIL/airootfs/usr/local/bin/nex-theme-store"
 
 echo "==> Permisos de los ficheros del instalador"
 sed -i '/^file_permissions=(/a\
   ["/root/nex-installer/instalar-nex.sh"]="0:0:755"\
   ["/root/nex-installer/generar_config.py"]="0:0:755"\
   ["/root/nex-installer/nex_instalador.py"]="0:0:755"\
+  ["/root/nex-installer/nex_installer_gui.py"]="0:0:755"\
+  ["/root/nex-installer/nex_installer_dashboard.py"]="0:0:755"\
+  ["/root/nex-installer/nex_theme_store_gui.py"]="0:0:755"\
+  ["/root/nex-installer/nex-start-gui.sh"]="0:0:755"\
   ["/root/nex-installer/post-instalacion/aplicar-tema.sh"]="0:0:755"\
   ["/root/nex-installer/nex-setup/nex-setup.sh"]="0:0:755"\
   ["/root/nex-installer/nex-setup/nex-optimizar.sh"]="0:0:755"\
   ["/root/nex-installer/nex-setup/nex_optimizador_gui.py"]="0:0:755"\
   ["/root/nex-installer/nex-setup/nex_plan.py"]="0:0:755"\
   ["/usr/local/bin/nex-setup"]="0:0:755"\
-  ["/usr/local/bin/nex-optimizar"]="0:0:755"' "$PERFIL/profiledef.sh"
+  ["/usr/local/bin/nex-optimizar"]="0:0:755"\
+  ["/usr/local/bin/nex-theme-store"]="0:0:755"' "$PERFIL/profiledef.sh"
 
+if [[ "${NEX_PROFILE_ONLY:-0}" == "1" ]]; then
+    echo "==> Perfil listo para inspección en: $PERFIL"
+    exit 0
+fi
 echo "==> Construyendo la ISO (tarda bastante: descarga paquetes)"
 mkarchiso -v -w "$TRABAJO" -o "$SALIDA" "$PERFIL"
 
